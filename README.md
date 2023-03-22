@@ -1,4 +1,4 @@
-<img src="./images/M-FastLogo.png" width="700px" height="200px" title="M-Fast Logo"/>
+<p align="center"><img src="./images/M-FastLogo.png" width="700px" height="200px" title="M-Fast Logo"/></p>
 
 # M-fast
 Mono AI 
