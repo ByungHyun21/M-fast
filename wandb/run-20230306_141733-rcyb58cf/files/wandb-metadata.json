@@ -1,0 +1,99 @@
+{
+    "os": "Linux-5.19.0-35-generic-x86_64-with-glibc2.35",
+    "python": "3.10.9",
+    "heartbeatAt": "2023-03-06T05:17:34.714217",
+    "startedAt": "2023-03-06T05:17:33.900035",
+    "docker": null,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "/home/harsper/work/code/od_ssd_torch/train.py",
+    "codePath": "train.py",
+    "host": "harsper-H410M-DS2V",
+    "username": "harsper",
+    "executable": "/home/harsper/anaconda3/envs/torch/bin/python",
+    "cpu_count": 6,
+    "cpu_count_logical": 12,
+    "cpu_freq": {
+        "current": 3999.970333333333,
+        "min": 800.0,
+        "max": 4300.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 3999.982,
+            "min": 800.0,
+            "max": 4300.0
+        },
+        {
+            "current": 3999.967,
+            "min": 800.0,
+            "max": 4300.0
+        },
+        {
+            "current": 4000.002,
+            "min": 800.0,
+            "max": 4300.0
+        },
+        {
+            "current": 4001.374,
+            "min": 800.0,
+            "max": 4300.0
+        },
+        {
+            "current": 3999.782,
+            "min": 800.0,
+            "max": 4300.0
+        },
+        {
+            "current": 3999.434,
+            "min": 800.0,
+            "max": 4300.0
+        },
+        {
+            "current": 4000.32,
+            "min": 800.0,
+            "max": 4300.0
+        },
+        {
+            "current": 4000.066,
+            "min": 800.0,
+            "max": 4300.0
+        },
+        {
+            "current": 3999.99,
+            "min": 800.0,
+            "max": 4300.0
+        },
+        {
+            "current": 3999.945,
+            "min": 800.0,
+            "max": 4300.0
+        },
+        {
+            "current": 4000.0,
+            "min": 800.0,
+            "max": 4300.0
+        },
+        {
+            "current": 4000.0,
+            "min": 800.0,
+            "max": 4300.0
+        }
+    ],
+    "disk": {
+        "total": 1832.2072448730469,
+        "used": 952.0307235717773
+    },
+    "gpu": "NVIDIA GeForce GTX 1060 6GB",
+    "gpu_count": 1,
+    "gpu_devices": [
+        {
+            "name": "NVIDIA GeForce GTX 1060 6GB",
+            "memory_total": 6442450944
+        }
+    ],
+    "memory": {
+        "total": 15.366249084472656
+    }
+}
