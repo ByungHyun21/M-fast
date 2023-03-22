@@ -1,9 +1,9 @@
-docker build od_ssd_torch --tag od_ssd_torch
+docker build --tag mfast . 
 
 # Server
-docker run -it --rm --runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=0 -v /home/harsper/code/od_ssd_torch:/home/od_ssd_torch -v /home/harsper/oddata:/home/dataset od_ssd_torch
+docker run -it --rm --runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=0 -v /home/harsper/code/od_ssd_torch:/mfast  -v /home/harsper/oddata:/dataset mfast 
 
 # Local
-docker run -it --rm --runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=0 -v /home/harsper/work/code/od_ssd_torch:/home/od_ssd_torch -v /home/harsper/dataset:/home/dataset od_ssd_torch
+docker run -it --rm --runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=0 -v /home/harsper/work/code/od_ssd_torch:/mfast  -v /home/harsper/dataset:/dataset mfast 
 
 

@@ -1,3 +1,5 @@
+import yaml
+
 class AverageMeter:
     def __init__(self):
         self.cnt = 0
@@ -13,3 +15,9 @@ class AverageMeter:
     def reset(self):
         self.cnt = 0
         self.sum = 0
+        
+        
+def load_config(config_path):
+    with open(config_path, 'r') as f:
+        config = yaml.load(f)
+    return config

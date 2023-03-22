@@ -4,23 +4,32 @@
 Mono AI 
 
 ### TODO
-- 코드 작성 
 - Multi-GPU + Docker 지원
+- Target에 따른 학습 파이프라인 지원(acacia, belladonna, etc.)
+- Backbone에 따른 학습 파이프라인 지원(Vgg16, MobileNet-V1, MobileNet-V2, MobileNet-V3)
+- Pretrained 여부에 따른 학습 파이프라인 지원
+- Dataset Merge에 따른 학습 파이프라인 지원(COCO+VOC)
+- 다른 Dataset에 대한 평가 파이프라인 지원(COCO, VOC, CrowdHuman, Argoseye)
 
 ### 사용법
 
+##### Nvidia-docker 설치
+```bash
+TODO
+```
+
 ##### Dockerfile을 이용한 실행
 ```bash
-docker build --tag M-fast .
+docker build --tag mfast .
 
-docker run -it --rm M-fast \
--v {M-fast 경로}:/M-fast \
+docker run -it --rm mfast \
+-v {M-fast 경로}:/mfast \
 -v {데이터셋 경로}:/dataset
 ```
 
 ##### Docker 내부에서 실행
 ```bash
-python 
+TODO
 ```
 
 # Backbone
@@ -69,23 +78,30 @@ python
 ### 지원하는 Dataset
 - [ ] VOC2007+2012
 - [ ] COCO2017
+- [ ] Crowd Human
 - [ ] Argoseye
 
 ### 성능
 ##### COCO2017 Dataset
-|Model|Dataset|AP|AP50|AP75|APs|APm|APl|
-|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-|YoloV1|COCO2017|-|-|-|-|-|-|
-|SSD|COCO2017|-|-|-|-|-|-|
+|Model|AP|AP50|AP75|APs|APm|APl|
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+|YoloV1|-|-|-|-|-|-|
+|SSD|-|-|-|-|-|-|
 
 ##### VOC2007+2012 Dataset
-|Model|Dataset|AP|AP50|AP75|APs|APm|APl|
-|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-|YoloV1|VOC2007+2012|-|-|-|-|-|-|
-|SSD|VOC2007+2012|-|-|-|-|-|-|
+|Model|AP|AP50|AP75|APs|APm|APl|
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+|YoloV1|-|-|-|-|-|-|
+|SSD|-|-|-|-|-|-|
+
+##### CrowdHuman Dataset
+|Model|AP|AP50|AP75|APs|APm|APl|
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+|YoloV1|-|-|-|-|-|-|
+|SSD|-|-|-|-|-|-|
 
 ##### Argoseye Dataset
-|Model|Dataset|AP|AP50|AP75|APs|APm|APl|
-|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-|YoloV1|Argoseye|-|-|-|-|-|-|
-|SSD|Argoseye|-|-|-|-|-|-|
+|Model|AP|AP50|AP75|APs|APm|APl|
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+|YoloV1|-|-|-|-|-|-|
+|SSD|-|-|-|-|-|-|
