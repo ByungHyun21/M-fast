@@ -68,15 +68,15 @@ python
 
 ### 지원하는 Dataset
 - [ ] VOC2007+2012
-- [ ] COCO
+- [ ] COCO2017
 - [ ] Argoseye
 
 ### 성능
-##### COCO Dataset
+##### COCO2017 Dataset
 |Model|Dataset|AP|AP50|AP75|APs|APm|APl|
 |:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-|YoloV1|COCO|-|-|-|-|-|-|
-|SSD|COCO|-|-|-|-|-|-|
+|YoloV1|COCO2017|-|-|-|-|-|-|
+|SSD|COCO2017|-|-|-|-|-|-|
 
 ##### VOC2007+2012 Dataset
 |Model|Dataset|AP|AP50|AP75|APs|APm|APl|
