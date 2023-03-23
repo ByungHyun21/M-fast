@@ -14,36 +14,36 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 
 from tqdm import tqdm
 import wandb
-from model.manager import network_manager
+from model.network_manager import network_manager
 from model.dataloader import dataset
+from model.metric import mAP
 from model.utils import *
 
 # # # # #
 # Training
-def train(ddp_rank):
+def train(rank:int, config:dict):
+    config['DEVICE'] = config['DEVICE'] + ':' + str(rank)
     
     # # # # #
     # Model 
-    model, preprocess, augmentator, loss, metric, manager = network_manager(config, ddp_rank, istrain=True)
+    model, model_full, preprocessor, augmentator, loss, manager = network_manager(config, rank, istrain=True)
 
     # # # # #
     # with DDP
-    os.environ['MASTER_ADDR'] = config['MASTER_ADDR']
-    os.environ['MASTER_PORT'] = config['MASTER_PORT']
-    dist.init_process_group("gloo", rank=ddp_rank, world_size=ddp_size)
+    dist.init_process_group(config['DDP_BACKEND'], 
+                            rank=ddp_rank, 
+                            world_size=config['DDP_WORLD_SIZE'], 
+                            init_method=config['DDP_INIT_METHOD'])
 
     model.to(ddp_rank)
-    if config['PRETRAINED'] == 'torchvision':
-        model = DDP(model, device_ids=[ddp_rank], output_device=ddp_rank, find_unused_parameters=True)
-    else:
-        model = DDP(model, device_ids=[ddp_rank], output_device=ddp_rank)
+    model = DDP(model, device_ids=[ddp_rank], output_device=ddp_rank)
 
-    ds_train = od_dataset(
-        config, ddp_rank, ddp_size, device, 'train', 
-        preprocessor=preprocess, augmentator=augmentator)
-    ds_valid = od_dataset(
-        config, ddp_rank, ddp_size, device, 'valid', 
-        preprocessor=preprocess, augmentator=augmentator)
+    ds_train = dataset(
+        config, ddp_rank, config['DDP_WORLD_SIZE'], config['DEVICE'], 'train', 
+        preprocessor=preprocessor, augmentator=augmentator)
+    ds_valid = dataset(
+        config, ddp_rank, config['DDP_WORLD_SIZE'], config['DEVICE'], 'valid', 
+        preprocessor=preprocessor, augmentator=augmentator)
 
     # # # # # # # #
     # Optimizer
@@ -162,28 +162,13 @@ def train(ddp_rank):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', type=str, default='model/config/ssd/mobilenet_v2.yaml')
+    parser.add_argument('--config', type=str, default='model/config/ssd/ssd_mobilenet_v2.yaml')
     parser.add_argument('--coco', action='store_true')
     parser.add_argument('--voc', action='store_true')
     parser.add_argument('--crowdhuman', action='store_true')
     parser.add_argument('--argoseye', action='store_true')
     opt = parser.parse_args()
-    with open(opt.model) as f:
-        config = yaml.load(f, Loader=yaml.SafeLoader)
+    
+    config = configuration(opt)
 
-    # # # # #
-    # torch, CUDA, gpu Setting
-    os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-    os.environ["CUDA_VISIBLE_DEVICES"]=opt.gpu
-    if torch.cuda.is_available():
-        torch.set_default_tensor_type('torch.cuda.FloatTensor')
-        device = 'cuda'
-    else:
-        torch.set_default_tensor_type('torch.FloatTensor')
-        device = 'cpu'
-
-    ddp_size = torch.cuda.device_count()
-
-    print('nprocs: ', ddp_size)
-    trian(0)
-    # mp.spawn(train, nprocs=torch.cuda.device_count(), join=True)
+    mp.spawn(train, nprocs=torch.cuda.device_count(), join=True)

@@ -2,35 +2,32 @@ import torch
 import torch.nn as nn
 
 class loss(nn.Module):
-    def __init__(self):
+    def __init__(self, config):
         super().__init__()
         # # # # #
         # Loss Parameter
-        self.alpha = 1.0
+        self.alpha = config['LOSS_ALPHA']
         self.SmoothL1Loss = nn.L1Loss(reduction='none')
         self.softmax = nn.Softmax(dim=2)
         self.sigmoid = nn.Sigmoid()
         
     def forward(self, pred, gt):
-        n_anchors = gt.shape[1]
-        # pred_cls : batch*anchors*class
-        # pred_loc : batch*anchors*(cx, cy, w, h)
-        pred_cls = pred[0][:, :, :-4]
-        pred_loc = pred[0][:, :, -4:]
+        # pred : batch*anchors*(4+1+class)
+        # gt : batch*anchors*(4+1+class)
+        cls = pred[:, :, 4:]
+        loc = pred[:, :, :4]
         
-        # gt_cls : batch*anchors*class
-        # gt_loc : batch*anchors*(cx, cy, w, h)
-        gt_cls = gt[:, :, :-4]
-        gt_loc = gt[:, :, -4:]
+        cls_gt = gt[:, :, 4:]
+        loc_gt = gt[:, :, :4]
         
-        neg = gt_cls[:, :, 0]
+        neg = cls_gt[:, :, 0]
         pos = 1 - neg
         npos = torch.sum(pos, dim=1)
 
         # # # # #
         # Cross Entropy
-        pred_cls = self.softmax(pred_cls)
-        entropy = torch.sum(gt_cls * -torch.log(torch.clip(pred_cls, 1e-5, 1.0 - 1e-5)), axis=2)
+        cls_softmax = self.softmax(cls)
+        entropy = torch.sum(cls_gt * -torch.log(torch.clip(cls_softmax, 1e-7, 1.0 - 1e-7)), axis=2)
         
         # # # # #
         # Hard Negative Mining
@@ -40,7 +37,7 @@ class loss(nn.Module):
         e_neg, _ = e_neg.sort(descending=True)
         _, indices = e_neg.sort(descending=True)
         
-        thres = torch.tile((npos * 3).unsqueeze(1), (1, n_anchors))
+        thres = torch.tile((npos * 3).unsqueeze(1), (1, pred.shape[1]))
         
         e_neg = torch.where(indices < thres, e_neg, 0.0)
         
@@ -53,10 +50,10 @@ class loss(nn.Module):
         
         # # # # #
         # Regression Loss
-        huber_loss = self.SmoothL1Loss(pred_loc, gt_loc)
+        huber_loss = self.SmoothL1Loss(loc, loc_gt)
         huber_loss = torch.mean(huber_loss, dim=2)
         
-        loss_loc = self.alpha * torch.sum(pos * huber_loss, axis=1)
+        loss_loc = self.alpha * torch.sum(pos * huber_loss, dim=1)
         
         # # # # #
         # Loss All

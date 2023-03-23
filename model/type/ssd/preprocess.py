@@ -1,6 +1,8 @@
-class ssd_preprocessor(object):
+import numpy as np
+
+class preprocessor(object):
     def __init__(self, config, anchor):
-        self.anchor = anchor.detach().cpu().numpy()
+        self.anchor = anchor
         self.nc = len(config['CLASS'])
     
     def __call__(self, label, box):

@@ -16,18 +16,17 @@ class dataset():
     def __init__(self, config, ddp_rank, ddp_size, device, purpose, preprocessor=None, augmentator=None):
         self.ddp_rank = ddp_rank
         self.ddp_size = ddp_size
-        self.dataset_root = Path(config['DATASET_PATH'])
         self.dataset = Path(config['DATASET'])
         self.names = config['CLASS']
         self.device = device
 
         if purpose == 'train':
-            image_dir = self.dataset_root / self.dataset / Path('images_train')
-            label_dir = self.dataset_root / self.dataset / Path('annotations_train')
+            image_dir = '/dataset' / self.dataset / Path('images_train')
+            label_dir = '/dataset' / self.dataset / Path('annotations_train')
             istrain = True
         if purpose == 'valid':
-            image_dir = self.dataset_root / self.dataset / Path('images_valid')
-            label_dir = self.dataset_root / self.dataset / Path('annotations_valid')
+            image_dir = '/dataset' / self.dataset / Path('images_valid')
+            label_dir = '/dataset' / self.dataset / Path('annotations_valid')
             istrain = False
 
         data = []
@@ -38,13 +37,16 @@ class dataset():
                 image = str(image_dir / sub_dir / anno.replace('.xml', '.jpg'))
                 data.append({'image':image, 'label':label})
         
-        # check dataset
+        #check dataset
         valid = np.ones(len(data)).astype(np.bool8)
-        for i in range(len(data)):
-            isgood = self.check_data(data, i)
+        # for idx, sample in enumerate(data):
+        #     isgood = self.check_data(sample)
             
-            if not isgood:
-                valid[i] = False
+        #     if idx % 10000 == 0:
+        #         print(f'Data Validation Check : {idx} / {len(data)}, {idx*100/len(data):.2f} %')
+            
+        #     if not isgood:
+        #         valid[idx] = False
         
         self.data = [item for keep, item in zip(valid, data) if keep]   
         
@@ -52,13 +54,14 @@ class dataset():
         self.n_data = len(self.data)
         
         self.buffer = Queue(maxsize=config['BATCH'] * config['BUFFER_SIZE'])
+        self.batch = Queue(maxsize=config['BATCH'])
         self.dataloader = dataloader(config, self.data, self.buffer, preprocessor, augmentator, ddp_rank, ddp_size, device, istrain)
-        self.batchloader = batchloader(config, self.data, self.buffer)
-        
-    def check_data(self, data, index):
+        self.batchloader = batchloader(config, self.buffer, self.batch)
+    
+    def check_data(self, data):
         error = False
         
-        tree = ET().parse(data[index]['label'])
+        tree = ET().parse(data['label'])
 
         objects = tree.findall('object')
         for obj in objects:
@@ -74,12 +77,10 @@ class dataset():
         if error:
             return False
         else:
-            return True        
+            return True
     
 class dataloader():
     def __init__(self, config, data, buffer, preprocessor, augmentator, ddp_rank, ddp_size, device, istrain):
-        self.data = data
-        self.buffer = buffer
         self.preprocessor = preprocessor
         self.augmentator = augmentator
         self.ddp_rank = ddp_rank
@@ -90,31 +91,28 @@ class dataloader():
         self.names = config['CLASS']
         self.buffer_size = config['BATCH'] * config['BUFFER_SIZE']
         
-        self.pool = Process(target=self.run, daemon=True)
-        self.pool.start()
+        self.pool = []
+        for _ in range(config['WORKERS']):
+            self.pool.append(Process(target=self.run, args=(data, buffer), daemon=True))
+            self.pool[-1].start()
             
-    def run(self):
-        idxlist = list(range(len(self.data)))
-        p = psutil.Process(os.getpid())
-        p.nice(10)
+    def run(self, data, buffer):
+        idxlist = list(range(len(data)))
+        
         while True:
             random.shuffle(idxlist)
             
             for idx in idxlist:
-                if self.buffer.qsize() > self.buffer_size*0.5:
-                    time.sleep(0.01)
-                    continue
-                
-                img, gt = self.get_item(idx)
+                img, gt = self.get_item(data[idx])
                 
                 if img == None or gt == None:
                     continue
             
-                self.buffer.put([img, gt])
+                buffer.put([img, gt])
             
             
-    def get_item(self, index):
-        img, labels, boxes = self.get_data(index)
+    def get_item(self, data):
+        img, labels, boxes = self.get_data(data)
     
         img, labels, boxes = self.augmentator(img, labels, boxes, self.istrain)
         
@@ -123,14 +121,10 @@ class dataloader():
             
         gt = self.preprocessor(labels, boxes)
 
-        if self.ddp_size > 1:
-            return torch.from_numpy(img).permute(2, 0, 1).to(self.ddp_rank).float(), torch.from_numpy(gt).to(self.ddp_rank).float()
-        else:
-            return torch.from_numpy(img).permute(2, 0, 1).to(self.device).float(), torch.from_numpy(gt).to(self.device).float()
+        return torch.from_numpy(img).permute(2, 0, 1).float(), torch.from_numpy(gt).float()
         
-    def get_data(self, index):
-        
-        tree = ET().parse(self.data[index]['label'])
+    def get_data(self, data):
+        tree = ET().parse(data['label'])
 
         labels = []
         boxes = []
@@ -147,7 +141,7 @@ class dataloader():
             labels.append(label)
             boxes.append([cx, cy, w, h])
         
-        img = cv2.imread(self.data[index]['image'])
+        img = cv2.imread(data['image'])
 
         if img.shape[2] == 1:
             img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
@@ -155,31 +149,17 @@ class dataloader():
         return img, labels, boxes
     
 class batchloader():
-    def __init__(self, config, data, buffer):
-        self.data = data
-        self.buffer = buffer
-        self.batch = Queue(maxsize=config['BUFFER_SIZE'])
+    def __init__(self, config, buffer, batch):
         self.batch_size = config['BATCH']
-        
-        self.pool = Process(target=self.run, daemon=True)
+        self.pool = Process(target=self.run, args=(buffer, batch), daemon=True)
         self.pool.start()
         
-    def run(self):
-        p = psutil.Process(os.getpid())
-        p.nice(10)
+    def run(self, buffer, batch):
         while True:
-            if self.buffer.qsize() < self.batch_size:    
-                time.sleep(0.01)
-                continue
-            
-            if self.batch.qsize() > self.batch_size * 0.5:
-                time.sleep(0.01)
-                continue
-            
             batch_img = []
             batch_gt = []
             for i in range(self.batch_size):
-                img, gt = self.buffer.get()
+                img, gt = buffer.get()
                 
                 batch_img.append(img)
                 batch_gt.append(gt)
@@ -187,4 +167,4 @@ class batchloader():
             batch_img = torch.stack(batch_img, dim=0)
             batch_gt = torch.stack(batch_gt, dim=0)
             
-            self.batch.put([batch_img, batch_gt])
+            batch.put([batch_img, batch_gt])

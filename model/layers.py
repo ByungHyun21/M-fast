@@ -46,7 +46,7 @@ class Conv2d(nn.Module):
     pm : padding mode
     act : activation function
     """
-    def __init__(self, cin:int, cout:int, k:int=3, s:int=1, d:int=1, bias:bool=True, pm:str='zeros', act:str='relu'):
+    def __init__(self, cin:int, cout:int, k:int=3, s:int=1, d:int=1, bn:bool=True, bias:bool=True, pm:str='zeros', act:str='relu'):
         super().__init__()
         # default 
         # torch.nn.Conv2d(in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1, groups=1, bias=True, padding_mode='zeros', device=None, dtype=None)
@@ -54,7 +54,9 @@ class Conv2d(nn.Module):
         
         # default
         # torch.nn.BatchNorm2d(num_features, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True, device=None, dtype=None)
-        self.bn = nn.BatchNorm2d(cout)
+        self.bn = None
+        if bn:
+            self.bn = nn.BatchNorm2d(cout)
         
         self.act = None
         if act == 'relu6':
@@ -64,7 +66,9 @@ class Conv2d(nn.Module):
 
     def forward(self, x):
         x = self.conv2d(x)
-        x = self.bn(x)
+        
+        if self.bn is not None:
+            x = self.bn(x)
 
         if self.act is not None:
             x = self.act(x)
@@ -84,7 +88,7 @@ class GroupConv2d(nn.Module):
     pm : padding mode
     act : activation function
     """
-    def __init__(self, cin:int, cout:int, k:int=3, s:int=1, d:int=1, bias:bool=True, pm:str='zeros', act:str='relu'):
+    def __init__(self, cin:int, cout:int, k:int=3, s:int=1, d:int=1, bn:bool=True, bias:bool=True, pm:str='zeros', act:str='relu'):
         super().__init__()
         assert(cout % cin == 0) # cout must be multiple of cin
         
@@ -94,7 +98,9 @@ class GroupConv2d(nn.Module):
         
         # default
         # torch.nn.BatchNorm2d(num_features, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True, device=None, dtype=None)
-        self.bn = nn.BatchNorm2d(cout)
+        self.bn = None
+        if bn:
+            self.bn = nn.BatchNorm2d(cout)
         
         self.act = None
         if act == 'relu6':
@@ -104,7 +110,9 @@ class GroupConv2d(nn.Module):
 
     def forward(self, x):
         x = self.depth2d(x)
-        x = self.bn(x)
+        
+        if self.bn is not None:
+            x = self.bn(x)
 
         if self.act is not None:
             x = self.act(x)
@@ -118,7 +126,7 @@ class MobileNet_V2_Conv2d(nn.Module):
     s : stride
     bias : bias
     """
-    def __init__(self, cin:int, cout:int, s:int=1, bias:bool=False):
+    def __init__(self, cin:int, cout:int, s:int=1, bn:bool=True, bias:bool=False):
         super().__init__()
         self.residual = False
         if cin == cout and s == 1:
@@ -126,9 +134,9 @@ class MobileNet_V2_Conv2d(nn.Module):
             # s == 1 : residual connection (no stride)
             self.residual = True
 
-        self.Conv2d_1 = Conv2d(cin, cin*6, 1, bias=bias, act='relu6')
-        self.GroupConv2d = GroupConv2d(cin*6, cin*6, s=s, bias=bias, act='relu6')
-        self.Conv2d_2 = Conv2d(cin*6, cout, 1, bias=bias, act=None)
+        self.Conv2d_1 = Conv2d(cin, cin*6, 1, bn=bn, bias=bias, act='relu6')
+        self.GroupConv2d = GroupConv2d(cin*6, cin*6, s=s, bn=bn, bias=bias, act='relu6')
+        self.Conv2d_2 = Conv2d(cin*6, cout, 1, bn=bn, bias=bias, act=None)
 
     def forward(self, x_in):
         x = self.Conv2d_1(x_in)
