@@ -1,25 +1,25 @@
 <p align="center"><img src="./images/M-FastLogo.png" width="700px" height="200px" title="M-Fast Logo"/></p>
 
-# M-fast
+# M-fast 🏃‍♂️🏃🏃‍♀️
 Mono AI 
 
-### TODO
-- Multi-GPU + Docker 지원
+## :small_blue_diamond: TODO 
+- One-node, Multi-GPU 지원
+- Multi-node, Multi-GPU 지원
 - Target에 따른 학습 파이프라인 지원(acacia, belladonna, etc.)
-- Backbone에 따른 학습 파이프라인 지원(Vgg16, MobileNet-V1, MobileNet-V2, MobileNet-V3)
 - Pretrained 여부에 따른 학습 파이프라인 지원(Pretrained, Not Pretrained, MOCO)
 - Dataset Merge에 따른 학습 파이프라인 지원(COCO+VOC)
     * utils/load_config에서 현재 단일 데이터셋만 지원
 - 다른 Dataset에 대한 평가 파이프라인 지원(COCO, VOC, CrowdHuman, Argoseye)
 
-### 사용법
+## :one: 사용법
 
-##### Nvidia-docker 설치
+### :small_blue_diamond: Nvidia-docker 설치
 ```bash
 TODO
 ```
 
-##### Dockerfile을 이용한 실행
+### :small_blue_diamond: Dockerfile을 이용한 실행
 ```bash
 docker build --tag mfast .
 
@@ -30,12 +30,49 @@ docker run -it --rm mfast \
 -shm-size=8G
 ```
 
-##### Docker 내부에서 실행
-```bash
-TODO
+예시
+```
+docker run -it --rm --gpus=all -v C:\M-fast:/mfast -v C:\dataset:/dataset --shm-size=8g mfast
 ```
 
-# Backbone
+### Docker 내부에서 실행
+#### Single Node Single GPU 
+  - COCO 
+```bash
+python train_model_single.py --config {config 경로} --coco 
+```
+  - VOC
+```bash
+python train_model_single.py --config {config 경로} --voc
+```
+  - CrowdHuman
+```bash
+python train_model_single.py --config {config 경로} --crowdhuman
+```
+  - Argoseye
+```bash
+python train_model_single.py --config {config 경로} --argoseye
+```
+
+#### Single Node Multi GPU
+  - COCO 
+```bash
+python train_model.py --config {config 경로} --coco
+```
+  - VOC
+```bash
+python train_model.py --config {config 경로} --voc
+```
+  - CrowdHuman
+```bash
+python train_model.py --config {config 경로} --crowdhuman
+```
+  - Argoseye
+```bash
+python train_model.py --config {config 경로} --argoseye
+```
+
+## :two: Backbone
 ### 지원하는 모델
 - [ ] Vgg16
 - [ ] MobileNet-V1
@@ -48,7 +85,7 @@ TODO
 - [ ] PASS
 
 ### 성능
-##### ImageNet Dataset
+#### :radio_button: ImageNet Dataset
 |Backbone|Method|Dataset|Top-1|Top-5|
 |:---:|:---:|:---:|:---:|:---:|
 |Vgg16|Classification|ImageNet|-|-|
@@ -56,7 +93,7 @@ TODO
 |MobileNet-V2|Classification|ImageNet|-|-|
 |MobileNet-V3|Classification|ImageNet|-|-|
 
-##### OpenImagesV7 Dataset
+#### :radio_button: OpenImagesV7 Dataset
 |Backbone|Method|Dataset|Top-1|Top-5|
 |:---:|:---:|:---:|:---:|:---:|
 |Vgg16|MOCO|OpenImagesV7|-|-|
@@ -64,7 +101,7 @@ TODO
 |MobileNet-V2|MOCO|OpenImagesV7|-|-|
 |MobileNet-V3|MOCO|OpenImagesV7|-|-|
 
-##### PASS Dataset
+#### :radio_button: PASS Dataset
 |Backbone|Method|Dataset|Top-1|Top-5|
 |:---:|:---:|:---:|:---:|:---:|
 |Vgg16|MOCO|PASS|-|-|
@@ -72,15 +109,15 @@ TODO
 |MobileNet-V2|MOCO|PASS|-|-|
 |MobileNet-V3|MOCO|PASS|-|-|
   
-# Model
+## :three: Model
 ### 지원하는 모델
-##### 2016
+#### 2016
 - [ ] YoloV1 (You Only Look Once, CVPR 2016)
 - [ ] SSD (Single Shot MultiBox Detector, ECCV 2016)
   - vgg16, mobilenet-v1, mobilenet-v2, mobilenet-v3
 - [ ] YOLO9000 (YOLO9000: Better, Faster, Stronger, CVPR 2017)
 
-##### 2019
+#### 2019
 - [ ] CenterNet (Objects as Points, CVPR 2019)
 
 
@@ -91,25 +128,25 @@ TODO
 - [ ] Argoseye (Argoseye, 1 class)
 
 ### 성능
-##### COCO2017 Dataset
+#### :radio_button: COCO2017 Dataset
 |Model|AP|AP50|AP75|APs|APm|APl|
 |:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 |YoloV1|-|-|-|-|-|-|
 |SSD|-|-|-|-|-|-|
 
-##### VOC2007+2012 Dataset
+#### :radio_button: VOC2007+2012 Dataset
 |Model|AP|AP50|AP75|APs|APm|APl|
 |:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 |YoloV1|-|-|-|-|-|-|
 |SSD|-|-|-|-|-|-|
 
-##### CrowdHuman Dataset
+#### :radio_button: CrowdHuman Dataset
 |Model|AP|AP50|AP75|APs|APm|APl|
 |:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 |YoloV1|-|-|-|-|-|-|
 |SSD|-|-|-|-|-|-|
 
-##### Argoseye Dataset
+#### :radio_button: Argoseye Dataset
 |Model|AP|AP50|AP75|APs|APm|APl|
 |:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 |YoloV1|-|-|-|-|-|-|

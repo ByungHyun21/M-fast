@@ -56,12 +56,10 @@ def configuration(opt):
     return config
 
 def save_model(config, model):
-    
     if not os.path.exists('runs'):
             os.mkdir('runs')
-    save_path = 'runs/' + config['PROJECT']
+    save_path = 'runs/' + config['MODEL'] + '_' + config['DATASET'] 
     if not os.path.exists(save_path):
         os.mkdir(save_path)
 
-
-        torch.save(model.module.state_dict(), save_path + '/' + config['PROJECT'] + '_train.pt')
+    torch.save(model.module.state_dict(), save_path + '/' + config['PROJECT'] + '_train.pt')
