@@ -19,10 +19,14 @@ BIAS: True
 MEAN: [0.485, 0.456, 0.406]
 STD: [0.229, 0.224, 0.225]
 
+### NMS
+TOPK: 200
+NMS_IOU_THRESHOLD: 0.5
+
 ### Training
 STEPS: [300000, 350000, 400000]
 LR: 0.01
-BATCH_PER_GPU: 16
+BATCH_PER_GPU: 8
 BATCH_SIZE: 16 # batch_size = (batch_size // N_gpu) * N_gpu
 WEIGHT_DECAY: 0.00005
 

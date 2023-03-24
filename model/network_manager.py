@@ -18,7 +18,7 @@ def network_manager(config, rank, istrain):
         
         anchor = anchor_generator(config)
         
-        model_full = ssd_full(model, anchor)
+        model_full = ssd_full(config, model, anchor)
         preprocessor = preprocessor(config, anchor)
         augmentator = augmentator(config)
         loss = loss(config)

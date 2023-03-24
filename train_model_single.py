@@ -71,20 +71,24 @@ def train(rank:int):
         manager.reset()
         pbar = tqdm(range(ds_train.steps_per_epoch), desc='Training', ncols=0)
         for _ in pbar:
+            step += 1
+            
             img, gt = ds_train.batch.get()
             optimizer.zero_grad()
             pred = model.model(img.to(config['DEVICE']))
             loss = loss_func(pred, gt.to(config['DEVICE']))
             loss[0].backward() # loss[0] = total loss
             optimizer.step()
-            
-            step += 1
             scheduler.step()
             
             manager.accumulate_loss(loss)
             pbar.set_postfix_str(manager.loss_print() + f"lr: {scheduler.get_last_lr()[0]:.6f}")
             
+            model(img.to(config['DEVICE']))
+            
         dict_train = manager.loss_dict('train/')
+        manager.wandb_report(epoch, dict_train)
+
 
         # # # # #
         # Validation
@@ -100,10 +104,12 @@ def train(rank:int):
             pbar.set_postfix_str(manager.loss_print())
 
         dict_valid = manager.loss_dict('valid/')
+        manager.wandb_report(epoch, dict_valid)
         
-        
-        
-        
+        # # # # #
+        # report sample
+        if ('Object Detection' in config['TASK']) and (epoch % 10 == 0):
+            manager.wandb_report_sample(epoch)
         
         # # # # #
         # Metric
