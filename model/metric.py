@@ -6,6 +6,7 @@ from xml.etree.ElementTree import ElementTree as ET
 import torch
 
 import numpy as np
+from tqdm import tqdm
 
 from model.utils import log
 
@@ -32,10 +33,24 @@ class mAP(object):
         image_dir = Path('/dataset') / self.dataset / Path('images_valid')
         label_dir = Path('/dataset') / self.dataset / Path('annotations_valid')
         
-        valid_class = []
+        self.valid_class = []
         for c in self.target_class:
             if c in model.target_class:
-                valid_class.append(c)
+                self.valid_class.append(c)
+                
+        self.table_model = []
+        for c in model.target_class: # Model to valid_class Mapping
+            if c in self.valid_class:
+                self.table_model.append(self.valid_class.index(c))
+            else:
+                self.table_model.append(-1)
+                
+        self.table_dataset = []
+        for c in self.target_class: # Dataset to valid_class Mapping
+            if c in self.valid_class:
+                self.table_dataset.append(self.valid_class.index(c))
+            else:
+                self.table_dataset.append(-1)
         
         data = []
         for sub_dir in self.category:
@@ -46,6 +61,7 @@ class mAP(object):
                 data.append({'image':image, 'label':label})
         
         #check dataset
+        log('check dataset')
         valid = np.ones(len(data)).astype(np.bool8)
         for idx, sample in enumerate(data):
             isgood = self.check_data(sample)    
@@ -61,7 +77,15 @@ class mAP(object):
         # mAP small (object area < (1/6)^2))
         # mAP medium (object area > (1/6)^2) and (object area < (1/3)^2)
         # mAP large (object area > (1/3)^2))
+        calculators = []
         
+        log(self.dataset + ' : mAP Calculation')
+        pbar = tqdm(self.data, ncols=0)
+        for d in pbar:
+            img, label, box = self.read_data(d)
+            
+            
+            
         
         
         pass
@@ -83,7 +107,7 @@ class mAP(object):
                 w = float(obj.find('w').text)
                 h = float(obj.find('h').text)
                 
-                if label in self.target_class:
+                if label in self.valid_class:
                     valid = True
             except:
                 error = True
@@ -96,5 +120,42 @@ class mAP(object):
         else:
             return False
         
+    def read_data(self, data):
+        label = []
+        box = []
+        
+        tree = ET().parse(data['label'])
+
+        objects = tree.findall('object')
+        for obj in objects:
+            l = obj.find('class').text
+            cx = float(obj.find('cx').text)
+            cy = float(obj.find('cy').text)
+            w = float(obj.find('w').text)
+            h = float(obj.find('h').text)
+            
+            if l not in self.target_class:
+                continue
+            
+            #cx, cy, w, h -> x1, y1, x2, y2
+            x1 = cx - w/2
+            x2 = cx + w/2
+            y1 = cy - h/2
+            y2 = cy + h/2
+            
+            label.append(self.target_class.index(l))
+            box.append([x1, y1, x2, y2])
+            
+        img = cv2.imread(data['image'])
+            
+        return img, label, box
+            
+        
+class mAP_calculator(object):
+    def __init__(self, target_class, iou_threshold):
+        super().__init__()
         
         
+    def __call__(self):
+        
+        pass

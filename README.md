@@ -35,56 +35,32 @@ docker run -it --rm mfast \
 docker run -it --rm --gpus=all -v C:\M-fast:/M-fast -v C:\dataset:/dataset --shm-size=8g mfast
 ```
 
-### Docker 내부에서 실행
+### :small_blue_diamond: Docker 내부에서 실행
 #### Single Node Single GPU 
-  - COCO 
+* 인자로 '--coco', '--voc', '--crowdhuman', '--argoseye' 입력시 해당 데이터셋을 사용함 
 ```bash
 python train_model_single.py --config {config 경로} --coco 
 ```
-  - VOC
-```bash
-python train_model_single.py --config {config 경로} --voc
-```
-  - CrowdHuman
-```bash
-python train_model_single.py --config {config 경로} --crowdhuman
-```
-  - Argoseye
-```bash
-python train_model_single.py --config {config 경로} --argoseye
-```
 
 #### Single Node Multi GPU
-  - COCO 
+* 인자로 '--coco', '--voc', '--crowdhuman', '--argoseye' 입력시 해당 데이터셋을 사용함 
 ```bash
 python train_model.py --config {config 경로} --coco
 ```
-  - VOC
-```bash
-python train_model.py --config {config 경로} --voc
-```
-  - CrowdHuman
-```bash
-python train_model.py --config {config 경로} --crowdhuman
-```
-  - Argoseye
-```bash
-python train_model.py --config {config 경로} --argoseye
-```
 
 ## :two: Backbone
-### 지원하는 모델
+### :small_blue_diamond: 지원하는 모델
 - [ ] Vgg16
 - [ ] MobileNet-V1
 - [ ] MobileNet-V2
 - [ ] MobileNet-V3
 
-### 지원하는 Dataset
+### :small_blue_diamond: 지원하는 Dataset
 - [ ] ImageNet
 - [ ] OpenImagesV7
 - [ ] PASS
 
-### 성능
+### :small_blue_diamond: 성능
 #### :radio_button: ImageNet Dataset
 |Backbone|Method|Dataset|Top-1|Top-5|
 |:---:|:---:|:---:|:---:|:---:|
@@ -110,7 +86,7 @@ python train_model.py --config {config 경로} --argoseye
 |MobileNet-V3|MOCO|PASS|-|-|
   
 ## :three: Model
-### 지원하는 모델
+### :small_blue_diamond: 지원하는 모델
 #### 2016
 - [ ] YoloV1 (You Only Look Once, CVPR 2016)
 - [ ] SSD (Single Shot MultiBox Detector, ECCV 2016)
@@ -121,13 +97,13 @@ python train_model.py --config {config 경로} --argoseye
 - [ ] CenterNet (Objects as Points, CVPR 2019)
 
 
-### 지원하는 Dataset
+### :small_blue_diamond: 지원하는 Dataset
 - [ ] VOC2007+2012 (PASCAL VOC, 20 classes)
 - [ ] COCO2017 (Common Objects in Context, 80 classes)
 - [ ] Crowd Human (Crowd Human, 2 class)
 - [ ] Argoseye (Argoseye, 1 class)
 
-### 성능
+### :small_blue_diamond: 성능
 * 일반적으로 AP<sup>small</sup>의 경우 32x32 이하의 작은 객체를, AP<sup>medium</sup>의 경우 96x96 이하의 중간 객체를, AP<sup>large</sup>의 경우 96x96 이상의 큰 객체를 의미합니다.
 * 입력 이미지 크기에 따라 각 요소들이 다르게 동작하므로, 여기에서는 AP<sup>small</sup>의 경우 객체의 bounding box의 넓이가 (1/6)<sup>2</sup> 이하인 경우를, AP<sup>medium</sup>의 경우 객체의 bounding box의 넓이가 (1/6)<sup>2</sup> 이상 (1/3)<sup>2</sup> 이하인 경우를, AP<sup>large</sup>의 경우 객체의 bounding box의 넓이가 (1/3)<sup>2</sup> 이상인 경우를 의미합니다.
 * 그리고 AP<sup>small</sup>의 경우 0.5 IoU threshold가, AP<sup>medium</sup>의 경우 0.6 IoU threshold가, AP<sup>large</sup>의 경우 0.7 IoU threshold가 적용됩니다.
