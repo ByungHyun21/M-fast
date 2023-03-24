@@ -1,12 +1,16 @@
 # Network
+TASK: ['Object Detection']
 METHOD: 'ssd'
 TYPE: 'mobilenet_v2' # {'mobilenetv2'}
+METRIC: ['mAP']
+LOSS: ['Total', 'Class', 'Regression']
 BACKBONE_WEIGHT: 'torchvision' # {None, 'torchvision'}
 PRETRAINED_WEIGHT: None # weight_path
 INPUT_SIZE: [300, 300] # (height, width), min size 224 x 224
 
+
 # System
-BUFFER_SIZE: 2
+BUFFER_SIZE: 4
 WORKERS: 2 # workers per gpu
 
 #HyperParameter
@@ -17,8 +21,9 @@ STD: [0.229, 0.224, 0.225]
 
 ### Training
 STEPS: [300000, 350000, 400000]
-LR: 0.0001
-BATCH: 16
+LR: 0.01
+BATCH_PER_GPU: 16
+BATCH_SIZE: 16 # batch_size = (batch_size // N_gpu) * N_gpu
 WEIGHT_DECAY: 0.00005
 
 ### loss
@@ -29,9 +34,3 @@ ANCHOR_N: [6, 6, 6, 6, 6, 6]
 # ANCHOR_SCALE: [0.1, 0.2, 0.375, 0.55, 0.725, 0.9]
 ANCHOR_SCALE: [0.1, 0.35, 0.5, 0.65, 0.8, 0.95]
 ANCHOR_SIZE: [16, 32, 64, 128, 256, 512] # 1/n
-
-# report
-REPORT_WANDB: False
-REPORT_METRIC: ['mAP']
-
-STEPS_PER_EPOCH: [10000, 500] # Trainig, Valid

@@ -52,9 +52,10 @@ class dataset():
         
         random.shuffle(data)
         self.n_data = len(self.data)
+        self.steps_per_epoch = self.n_data // config['BATCH_SIZE']
         
-        self.buffer = Queue(maxsize=config['BATCH'] * config['BUFFER_SIZE'])
-        self.batch = Queue(maxsize=config['BATCH'])
+        self.buffer = Queue(maxsize=config['BATCH_PER_GPU'] * config['BUFFER_SIZE'])
+        self.batch = Queue(maxsize=config['BUFFER_SIZE'])
         self.dataloader = dataloader(config, self.data, self.buffer, preprocessor, augmentator, ddp_rank, ddp_size, device, istrain)
         self.batchloader = batchloader(config, self.buffer, self.batch)
     
@@ -89,7 +90,7 @@ class dataloader():
         self.istrain = istrain
         
         self.names = config['CLASS']
-        self.buffer_size = config['BATCH'] * config['BUFFER_SIZE']
+        self.buffer_size = config['BATCH_PER_GPU'] * config['BUFFER_SIZE']
         
         self.pool = []
         for _ in range(config['WORKERS']):
@@ -150,7 +151,7 @@ class dataloader():
     
 class batchloader():
     def __init__(self, config, buffer, batch):
-        self.batch_size = config['BATCH']
+        self.batch_size = config['BATCH_PER_GPU']
         self.pool = Process(target=self.run, args=(buffer, batch), daemon=True)
         self.pool.start()
         

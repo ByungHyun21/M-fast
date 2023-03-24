@@ -9,6 +9,7 @@ def configuration(opt):
         config = yaml.load(f, Loader=yaml.SafeLoader)
         
     config.update({'MODEL': config['METHOD'] + '_' + config['TYPE']})
+    config.update({'WANDB': opt.wandb})
     
     # Dataset configuration
     assert opt.coco + opt.voc + opt.crowdhuman + opt.argoseye == 1, '\t현재는 단일 데이터셋만 지원'

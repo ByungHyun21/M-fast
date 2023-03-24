@@ -20,82 +20,40 @@ class AverageMeter:
 class report_manager():
     def __init__(self, config, rank):
         self.rank = rank
-        
-        self.phase = None # 'T' or 'V' for training and validate
 
-        self.loss_class = AverageMeter()
-        self.loss_location = AverageMeter()
-        self.loss_all = AverageMeter()
+        self.loss_name = config['LOSS']
+        n_loss = len(config['LOSS'])
+        self.loss = []
+        for i in range(n_loss):
+            self.loss.append(AverageMeter())
         
-        self.iter_start = time.time()
-        self.iter_end = time.time()
-        
-        self.global_step = 0
-        self.local_step = 0
+        self.step = 0
 
-        if self.rank == 0 and config['REPORT_WANDB']:
-            wandb.init(project='M-FAST', entity='byunghyun', config=config)
+        if self.rank == 0 and (config['WANDB'] is not None):
+            wandb.init(project='M-FAST', entity=config['WANDB'], config=config)
         
-    def report_wandb(self, rdT, rdV, step):
-        if self.rank != 0:
-            return 
+    def reset(self):
+        self.step = 0
+        for i in range(len(self.loss)):
+            self.loss[i].reset()
+            
+    def accumulate_loss(self, loss):
+        for i in range(len(self.loss)):
+            self.loss[i].get_data(loss[i].item())
+            
+        self.step += 1
         
-        rdT.update(rdV)
-        wandb.log(rdT, step=step)
-
-    def report_model(self):
-        if self.rank != 0:
-            return 
-
-        # TODO:
+    def loss_print(self):
+        str_out = ''
         
-    def gather(self, l_all, l_cls, l_loc):
-        if self.rank != 0:
-            return 
-        
-        self.loss_class.get_data(l_cls.detach().cpu().numpy())
-        self.loss_location.get_data(l_loc.detach().cpu().numpy())
-        self.loss_all.get_data(l_all.detach().cpu().numpy())
-        
-        self.global_step += 1
-        self.local_step += 1
-        
-    def report(self):
-        if self.rank != 0:
-            return 
-        
-        report_dict = {
-            self.phase+'Lall': self.loss_all.get_mean(),
-            self.phase+'Lcls': self.loss_class.get_mean(), 
-            self.phase+'Lloc': self.loss_location.get_mean()
-        }
-
-        return report_dict
-        
-    def report_print(self):
-        if self.rank != 0:
-            return 
-        
-        self.iter_start = time.time()
-        if self.phase == 'T':
-            string = f'Training | step: {self.local_step}/{self.len_train} | '
-        else:
-            string = f'Validation | step: {self.local_step}/{self.len_valid} | '
-        string += f'{1/(self.iter_start - self.iter_end):.2f} iter/S | '
-        string += f'LAll: {self.loss_all.get_mean():.2f} | Lcls: {self.loss_class.get_mean():.2f} | LLoc: {self.loss_location.get_mean():.2f}'
-        print(string, end='\r', flush=True)
-        self.iter_end = time.time()
-        
-        sys.stdout.flush()
-
-    def report_reset(self):
-        if self.rank != 0:
-            return 
-        
-        self.loss_class.reset()
-        self.loss_location.reset()
-        self.loss_all.reset()
-        
-        self.local_step = 0
-        
-        print("")
+        for i in range(len(self.loss)):
+            str_out += f"{self.loss_name[i]}: {self.loss[i].get_mean():.2f}, "
+        return str_out
+    
+    def loss_dict(self, prefix):
+        dict_out = {}
+        for i in range(len(self.loss)):
+            dict_out[prefix + self.loss_name[i]] = self.loss[i].get_mean()
+        return dict_out
+    
+    

@@ -16,6 +16,7 @@ parser.add_argument('--coco', action='store_true')
 parser.add_argument('--voc', action='store_true')
 parser.add_argument('--crowdhuman', action='store_true')
 parser.add_argument('--argoseye', action='store_true')
+parser.add_argument('--wandb', default=None, type=str)
 opt = parser.parse_args()
 
 #TODO: 테스트용
@@ -23,14 +24,14 @@ opt.coco = True
 
 config = configuration(opt)
 
+assert config['BATCH_SIZE'] % (config['BATCH_PER_GPU'] * config['DDP_WORLD_SIZE']) == 0, 'BATCH_SIZE % (BATCH_PER_GPU * DDP_WORLD_SIZE) != 0'
+
 # # # # #
 # Training
 def train(rank:int):
     config['DEVICE'] = config['DEVICE'] + ':' + str(rank)
     
-    # # # # #
-    # Model 
-    model, model_full, preprocessor, augmentator, loss_func, manager = network_manager(config, rank, istrain=True)
+    model, preprocessor, augmentator, loss_func, manager = network_manager(config, rank, istrain=True)
 
     ds_train = dataset(
         config, 0, config['DDP_WORLD_SIZE'], config['DEVICE'], 'train', 
@@ -39,10 +40,9 @@ def train(rank:int):
         config, 0, config['DDP_WORLD_SIZE'], config['DEVICE'], 'valid', 
         preprocessor=preprocessor, augmentator=augmentator)
 
-    # # # # # # # #
-    # Optimizer
+    
     # optimizer = optim.Adam(model.parameters(), lr=config['LR'], betas=(0.9, 0.999), weight_decay=config['WEIGHT_DECAY'])
-    optimizer = optim.SGD(model.parameters(), lr=config['LR'], momentum=0.9, weight_decay=config['WEIGHT_DECAY'])
+    optimizer = optim.SGD(model.model.parameters(), lr=config['LR'], momentum=0.9, weight_decay=config['WEIGHT_DECAY'])
     
     def custom_scheduler(step):
         if step < config['STEPS'][0]:
@@ -54,8 +54,9 @@ def train(rank:int):
         return lr
                 
     scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=custom_scheduler)
-    # Optimizer
-    # # # # # # # #
+    
+    if 'mAP' in config['METRIC']:
+        metric_mAP = mAP(config)
     
     step = -1
     epoch = -1
@@ -66,28 +67,59 @@ def train(rank:int):
             
         # # # # #
         # Training
-        model.train()
-        for _ in range(config['STEPS_PER_EPOCH'][0]):
+        model.model.train()
+        manager.reset()
+        pbar = tqdm(range(ds_train.steps_per_epoch), desc='Training', ncols=0)
+        for _ in pbar:
             img, gt = ds_train.batch.get()
             optimizer.zero_grad()
-            pred = model(img.to('cuda'))
-            loss = loss_func(pred, gt.to('cuda'))
-            loss[0].backward()
+            pred = model.model(img.to(config['DEVICE']))
+            loss = loss_func(pred, gt.to(config['DEVICE']))
+            loss[0].backward() # loss[0] = total loss
             optimizer.step()
             
             step += 1
             scheduler.step()
+            
+            manager.accumulate_loss(loss)
+            pbar.set_postfix_str(manager.loss_print() + f"lr: {scheduler.get_last_lr()[0]:.6f}")
+            
+        dict_train = manager.loss_dict('train/')
 
         # # # # #
         # Validation
-        model.eval()
-        for _ in range(config['STEPS_PER_EPOCH'][1]):
+        model.model.eval()
+        manager.reset()
+        pbar = tqdm(range(ds_valid.steps_per_epoch), desc='Validation', ncols=0)
+        for _ in pbar:
             img, gt = ds_valid.batch.get()
-            pred = model(img.to('cuda'))
-            loss = loss_func(pred, gt.to('cuda'))
+            pred = model.model(img.to(config['DEVICE']))
+            loss = loss_func(pred, gt.to(config['DEVICE']))
+            
+            manager.accumulate_loss(loss)
+            pbar.set_postfix_str(manager.loss_print())
 
+        dict_valid = manager.loss_dict('valid/')
+        
+        
+        
+        
+        
+        # # # # #
+        # Metric
+        if 'mAP' in config['METRIC']:
+            # metirc_mAP(model, )
+            pass
+        
+        # # # # #
+        # Save
+        
+        
         if step >= config['STEPS'][-1]:
             break
+        
+        
+        
 
 if __name__ == '__main__':
     train(0)

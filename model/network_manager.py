@@ -26,4 +26,4 @@ def network_manager(config, rank, istrain):
         if istrain:
             manager = report_manager(config, rank)
         
-    return model, model_full, preprocessor, augmentator, loss, manager
+    return model_full, preprocessor, augmentator, loss, manager

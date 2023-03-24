@@ -25,14 +25,14 @@ docker build --tag mfast .
 
 docker run -it --rm mfast \
 --runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=0 \
--v {M-fast 경로}:/mfast \
+-v {M-fast 경로}:/M-fast \
 -v {데이터셋 경로}:/dataset \ 
 -shm-size=8G
 ```
 
 예시
 ```
-docker run -it --rm --gpus=all -v C:\M-fast:/mfast -v C:\dataset:/dataset --shm-size=8g mfast
+docker run -it --rm --gpus=all -v C:\M-fast:/M-fast -v C:\dataset:/dataset --shm-size=8g mfast
 ```
 
 ### Docker 내부에서 실행
