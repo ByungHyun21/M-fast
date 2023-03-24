@@ -1,5 +1,7 @@
 import os, platform
 import yaml
+import inspect
+from termcolor import colored
 
 import torch
 
@@ -64,3 +66,12 @@ def save_model(config, model):
         os.mkdir(save_path)
 
     torch.save(model.module.state_dict(), save_path + '/' + config['PROJECT'] + '_train.pt')
+    
+def log(string:str):
+    file = os.path.basename(__file__)
+    func = inspect.currentframe().f_code.co_name
+    line = inspect.currentframe().f_lineno
+    
+    str1 = colored('[' + file + ' ' + func + ':' + str(line) + '] ', 'blue')
+    str2 = colored(string, 'green')
+    print(str1 + str2)

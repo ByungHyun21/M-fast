@@ -1,4 +1,5 @@
 import argparse
+import yaml
 
 import numpy as np
 import torch
@@ -55,8 +56,14 @@ def train(rank:int):
                 
     scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=custom_scheduler)
     
-    if 'mAP' in config['METRIC']:
-        metric_mAP = mAP(config)
+    # metric
+    metric_mAP = mAP()
+    
+    #TODO: 테스트용
+    with open('model/config/dataset/coco.yaml') as f:
+        target = yaml.load(f, Loader=yaml.SafeLoader)
+        metric_mAP.set(target['DATASET'], target['CATEGORY'], target['CLASS'])
+        metric_mAP(model)
     
     step = -1
     epoch = -1
@@ -114,7 +121,8 @@ def train(rank:int):
         # # # # #
         # Metric
         if 'mAP' in config['METRIC']:
-            # metirc_mAP(model, )
+            metric_mAP.set(config['DATASET'], config['CATEGORY'], config['CLASS'])
+            metric_mAP(model)
             pass
         
         # # # # #
@@ -123,6 +131,27 @@ def train(rank:int):
         
         if step >= config['STEPS'][-1]:
             break
+        
+    if 'mAP' in config['METRIC']:
+        with open('model/config/dataset/coco.yaml') as f:
+            target = yaml.load(f, Loader=yaml.SafeLoader)
+        metric_mAP.set(target['DATASET'], target['CATEGORY'], target['CLASS'])
+        metric_mAP(model)
+    
+        with open('model/config/dataset/voc.yaml') as f:
+            target = yaml.load(f, Loader=yaml.SafeLoader)
+        metric_mAP.set(target['DATASET'], target['CATEGORY'], target['CLASS'])
+        metric_mAP(model)
+    
+        with open('model/config/dataset/crowdhuman.yaml') as f:
+            target = yaml.load(f, Loader=yaml.SafeLoader)
+        metric_mAP.set(target['DATASET'], target['CATEGORY'], target['CLASS'])
+        metric_mAP(model)
+    
+        with open('model/config/dataset/argoseye.yaml') as f:
+            target = yaml.load(f, Loader=yaml.SafeLoader)
+        metric_mAP.set(target['DATASET'], target['CATEGORY'], target['CLASS'])
+        metric_mAP(model)
         
         
         

@@ -7,5 +7,6 @@ RUN pip install opencv-python
 RUN pip install wandb
 RUN pip install tqdm
 RUN pip install pyyaml
+RUN pip install termcolor colorama
 
 WORKDIR /M-fast

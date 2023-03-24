@@ -128,26 +128,30 @@ python train_model.py --config {config 경로} --argoseye
 - [ ] Argoseye (Argoseye, 1 class)
 
 ### 성능
+* 일반적으로 AP<sup>small</sup>의 경우 32x32 이하의 작은 객체를, AP<sup>medium</sup>의 경우 96x96 이하의 중간 객체를, AP<sup>large</sup>의 경우 96x96 이상의 큰 객체를 의미합니다.
+* 입력 이미지 크기에 따라 각 요소들이 다르게 동작하므로, 여기에서는 AP<sup>small</sup>의 경우 객체의 bounding box의 넓이가 (1/6)<sup>2</sup> 이하인 경우를, AP<sup>medium</sup>의 경우 객체의 bounding box의 넓이가 (1/6)<sup>2</sup> 이상 (1/3)<sup>2</sup> 이하인 경우를, AP<sup>large</sup>의 경우 객체의 bounding box의 넓이가 (1/3)<sup>2</sup> 이상인 경우를 의미합니다.
+* 그리고 AP<sup>small</sup>의 경우 0.5 IoU threshold가, AP<sup>medium</sup>의 경우 0.6 IoU threshold가, AP<sup>large</sup>의 경우 0.7 IoU threshold가 적용됩니다.
+
 #### :radio_button: COCO2017 Dataset
-|Model|AP|AP50|AP75|APs|APm|APl|
-|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-|YoloV1|-|-|-|-|-|-|
-|SSD|-|-|-|-|-|-|
+|Model|Size|pretrained|AP0.5:0.95|AP50|AP75|AP<sup>small</sup>|AP<sup>midium</sup>|AP<sup>large</sup>|
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+|YoloV1|-|-|-|-|-|-|-|-|
+|SSD|-|-|-|-|-|-|-|-|
 
 #### :radio_button: VOC2007+2012 Dataset
-|Model|AP|AP50|AP75|APs|APm|APl|
-|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-|YoloV1|-|-|-|-|-|-|
-|SSD|-|-|-|-|-|-|
+|Model|Size|pretrained|AP0.5:0.95|AP50|AP75|AP<sup>small</sup>|AP<sup>midium</sup>|AP<sup>large</sup>|
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+|YoloV1|-|-|-|-|-|-|-|-|
+|SSD|-|-|-|-|-|-|-|-|
 
 #### :radio_button: CrowdHuman Dataset
-|Model|AP|AP50|AP75|APs|APm|APl|
-|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-|YoloV1|-|-|-|-|-|-|
-|SSD|-|-|-|-|-|-|
+|Model|Size|pretrained|AP0.5:0.95|AP50|AP75|AP<sup>small</sup>|AP<sup>midium</sup>|AP<sup>large</sup>|
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+|YoloV1|-|-|-|-|-|-|-|-|
+|SSD|-|-|-|-|-|-|-|-|
 
 #### :radio_button: Argoseye Dataset
-|Model|AP|AP50|AP75|APs|APm|APl|
-|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-|YoloV1|-|-|-|-|-|-|
-|SSD|-|-|-|-|-|-|
+|Model|Size|pretrained|AP0.5:0.95|AP50|AP75|AP<sup>small</sup>|AP<sup>midium</sup>|AP<sup>large</sup>|
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+|YoloV1|-|-|-|-|-|-|-|-|
+|SSD|-|-|-|-|-|-|-|-|
