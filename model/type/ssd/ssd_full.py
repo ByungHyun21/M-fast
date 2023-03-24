@@ -50,7 +50,7 @@ class ssd_full(nn.Module):
         
         output = self.nms(cls, score, box, top_k=self.topk, nms_iou_threshold=self.nms_iou_threshold)
 
-        return torch.concat([cls, x1, y1, x2, y2], dim=1)
+        return output
 
     def nms(self, cls, score, box, top_k=200, nms_iou_threshold=0.5):
         

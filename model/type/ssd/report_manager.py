@@ -57,7 +57,7 @@ class report_manager():
         return dict_out
     
     def wandb_report(self, epoch,  dict_out):
-        if self.rank == 0:
+        if self.rank == 0 and (config['WANDB'] is not None):
             wandb.log(dict_out, step=epoch)
             
     def wandb_report_sample(self, epoch):

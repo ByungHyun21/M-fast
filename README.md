@@ -4,13 +4,14 @@
 Mono AI 
 
 ## :small_blue_diamond: TODO 
+- mAP 지원
+- wawndb bounding box debugger 지원
 - One-node, Multi-GPU 지원
 - Multi-node, Multi-GPU 지원
 - Target에 따른 학습 파이프라인 지원(acacia, belladonna, etc.)
 - Pretrained 여부에 따른 학습 파이프라인 지원(Pretrained, Not Pretrained, MOCO)
 - Dataset Merge에 따른 학습 파이프라인 지원(COCO+VOC)
     * utils/load_config에서 현재 단일 데이터셋만 지원
-- 다른 Dataset에 대한 평가 파이프라인 지원(COCO, VOC, CrowdHuman, Argoseye)
 
 ## :one: 사용법
 
@@ -36,13 +37,13 @@ docker run -it --rm --gpus=all -v C:\M-fast:/M-fast -v C:\dataset:/dataset --shm
 ```
 
 ### :small_blue_diamond: Docker 내부에서 실행
-#### Single Node Single GPU 
+#### :radio_button: Single Node Single GPU 
 * 인자로 '--coco', '--voc', '--crowdhuman', '--argoseye' 입력시 해당 데이터셋을 사용함 
 ```bash
 python train_model_single.py --config {config 경로} --coco 
 ```
 
-#### Single Node Multi GPU
+#### :radio_button: Single Node Multi GPU
 * 인자로 '--coco', '--voc', '--crowdhuman', '--argoseye' 입력시 해당 데이터셋을 사용함 
 ```bash
 python train_model.py --config {config 경로} --coco
@@ -87,13 +88,13 @@ python train_model.py --config {config 경로} --coco
   
 ## :three: Model
 ### :small_blue_diamond: 지원하는 모델
-#### 2016
+#### :radio_button: 2016
 - [ ] YoloV1 (You Only Look Once, CVPR 2016)
 - [ ] SSD (Single Shot MultiBox Detector, ECCV 2016)
   - vgg16, mobilenet-v1, mobilenet-v2, mobilenet-v3
 - [ ] YOLO9000 (YOLO9000: Better, Faster, Stronger, CVPR 2017)
 
-#### 2019
+#### :radio_button: 2019
 - [ ] CenterNet (Objects as Points, CVPR 2019)
 
 
@@ -109,25 +110,25 @@ python train_model.py --config {config 경로} --coco
 * 그리고 AP<sup>small</sup>의 경우 0.5 IoU threshold가, AP<sup>medium</sup>의 경우 0.6 IoU threshold가, AP<sup>large</sup>의 경우 0.7 IoU threshold가 적용됩니다.
 
 #### :radio_button: COCO2017 Dataset
-|Model|Size|pretrained|AP0.5:0.95|AP50|AP75|AP<sup>small</sup>|AP<sup>midium</sup>|AP<sup>large</sup>|
+|Model|Size|pretrained|AP<sup>0.5:0.95</sup>|AP<sup>50</sup>|AP<sup>75</sup>|AP<sup>small</sup>|AP<sup>midium</sup>|AP<sup>large</sup>|
 |:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 |YoloV1|-|-|-|-|-|-|-|-|
 |SSD|-|-|-|-|-|-|-|-|
 
 #### :radio_button: VOC2007+2012 Dataset
-|Model|Size|pretrained|AP0.5:0.95|AP50|AP75|AP<sup>small</sup>|AP<sup>midium</sup>|AP<sup>large</sup>|
+|Model|Size|pretrained|AP<sup>0.5:0.95</sup>|AP<sup>50</sup>|AP<sup>75</sup>|AP<sup>small</sup>|AP<sup>midium</sup>|AP<sup>large</sup>|
 |:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 |YoloV1|-|-|-|-|-|-|-|-|
 |SSD|-|-|-|-|-|-|-|-|
 
 #### :radio_button: CrowdHuman Dataset
-|Model|Size|pretrained|AP0.5:0.95|AP50|AP75|AP<sup>small</sup>|AP<sup>midium</sup>|AP<sup>large</sup>|
+|Model|Size|pretrained|AP<sup>0.5:0.95</sup>|AP<sup>50</sup>|AP<sup>75</sup>|AP<sup>small</sup>|AP<sup>midium</sup>|AP<sup>large</sup>|
 |:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 |YoloV1|-|-|-|-|-|-|-|-|
 |SSD|-|-|-|-|-|-|-|-|
 
 #### :radio_button: Argoseye Dataset
-|Model|Size|pretrained|AP0.5:0.95|AP50|AP75|AP<sup>small</sup>|AP<sup>midium</sup>|AP<sup>large</sup>|
+|Model|Size|pretrained|AP<sup>0.5:0.95</sup>|AP<sup>50</sup>|AP<sup>75</sup>|AP<sup>small</sup>|AP<sup>midium</sup>|AP<sup>large</sup>|
 |:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 |YoloV1|-|-|-|-|-|-|-|-|
 |SSD|-|-|-|-|-|-|-|-|

@@ -78,13 +78,26 @@ class mAP(object):
         # mAP medium (object area > (1/6)^2) and (object area < (1/3)^2)
         # mAP large (object area > (1/3)^2))
         calculators = []
+        calculators.append(mAP_calculator(0, 1, 0.5))                   # mAP 0.5
+        calculators.append(mAP_calculator(0, 1, 0.55))                  # mAP 0.55
+        calculators.append(mAP_calculator(0, 1, 0.6))                   # mAP 0.6
+        calculators.append(mAP_calculator(0, 1, 0.65))                  # mAP 0.65
+        calculators.append(mAP_calculator(0, 1, 0.7))                   # mAP 0.7
+        calculators.append(mAP_calculator(0, 1, 0.75))                  # mAP 0.75
+        calculators.append(mAP_calculator(0, 1, 0.8))                   # mAP 0.8
+        calculators.append(mAP_calculator(0, 1, 0.85))                  # mAP 0.85
+        calculators.append(mAP_calculator(0, 1, 0.9))                   # mAP 0.9
+        calculators.append(mAP_calculator(0, 1, 0.95))                  # mAP 0.95
+        calculators.append(mAP_calculator(0, (1/6)**2, 0.5))            # mAP small
+        calculators.append(mAP_calculator((1/6)**2, (1/3)**2, 0.6))     # mAP medium
+        calculators.append(mAP_calculator((1/3)**2, 1, 0.7))            # mAP large
         
         log(self.dataset + ' : mAP Calculation')
-        pbar = tqdm(self.data, ncols=0)
+        pbar = tqdm(self.data, desc=self.dataset + ' : mAP Calculation', ncols=0)
         for d in pbar:
             img, label, box = self.read_data(d)
             
-            
+            pred = model(img.to(model.device))
             
         
         
@@ -152,7 +165,7 @@ class mAP(object):
             
         
 class mAP_calculator(object):
-    def __init__(self, target_class, iou_threshold):
+    def __init__(self, min_area, max_area, iou_threshold):
         super().__init__()
         
         

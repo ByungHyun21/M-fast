@@ -60,10 +60,10 @@ def train(rank:int):
     metric_mAP = mAP()
     
     #TODO: 테스트용
-    with open('model/config/dataset/coco.yaml') as f:
-        target = yaml.load(f, Loader=yaml.SafeLoader)
-        metric_mAP.set(target['DATASET'], target['CATEGORY'], target['CLASS'])
-        metric_mAP(model)
+    # with open('model/config/dataset/coco.yaml') as f:
+    #     target = yaml.load(f, Loader=yaml.SafeLoader)
+    #     metric_mAP.set(target['DATASET'], target['CATEGORY'], target['CLASS'])
+    #     metric_mAP(model)
     
     step = -1
     epoch = -1
@@ -91,11 +91,8 @@ def train(rank:int):
             manager.accumulate_loss(loss)
             pbar.set_postfix_str(manager.loss_print() + f"lr: {scheduler.get_last_lr()[0]:.6f}")
             
-            model(img.to(config['DEVICE']))
-            
         dict_train = manager.loss_dict('train/')
         manager.wandb_report(epoch, dict_train)
-
 
         # # # # #
         # Validation
