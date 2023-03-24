@@ -90,8 +90,8 @@ python train_model.py --config {config 경로} --coco
 ### :small_blue_diamond: 지원하는 모델
 #### :radio_button: 2016
 - [ ] YoloV1 (You Only Look Once, CVPR 2016)
-- [ ] SSD (Single Shot MultiBox Detector, ECCV 2016)
-  - vgg16, mobilenet-v1, mobilenet-v2, mobilenet-v3
+- [x] SSD (Single Shot MultiBox Detector, ECCV 2016)
+  - [ ] vgg16, [ ] mobilenet-v1, [x] mobilenet-v2, [ ] mobilenet-v3
 - [ ] YOLO9000 (YOLO9000: Better, Faster, Stronger, CVPR 2017)
 
 #### :radio_button: 2019
@@ -100,14 +100,23 @@ python train_model.py --config {config 경로} --coco
 
 ### :small_blue_diamond: 지원하는 Dataset
 - [ ] VOC2007+2012 (PASCAL VOC, 20 classes)
-- [ ] COCO2017 (Common Objects in Context, 80 classes)
-- [ ] Crowd Human (Crowd Human, 2 class)
-- [ ] Argoseye (Argoseye, 1 class)
+- [x] COCO2017 (Common Objects in Context, 80 classes)
+- [x] Crowd Human (Crowd Human, 2 class)
+- [x] Argoseye (Argoseye, 1 class)
 
 ### :small_blue_diamond: 성능
-* 일반적으로 AP<sup>small</sup>의 경우 32x32 이하의 작은 객체를, AP<sup>medium</sup>의 경우 96x96 이하의 중간 객체를, AP<sup>large</sup>의 경우 96x96 이상의 큰 객체를 의미합니다.
-* 입력 이미지 크기에 따라 각 요소들이 다르게 동작하므로, 여기에서는 AP<sup>small</sup>의 경우 객체의 bounding box의 넓이가 (1/6)<sup>2</sup> 이하인 경우를, AP<sup>medium</sup>의 경우 객체의 bounding box의 넓이가 (1/6)<sup>2</sup> 이상 (1/3)<sup>2</sup> 이하인 경우를, AP<sup>large</sup>의 경우 객체의 bounding box의 넓이가 (1/3)<sup>2</sup> 이상인 경우를 의미합니다.
-* 그리고 AP<sup>small</sup>의 경우 0.5 IoU threshold가, AP<sup>medium</sup>의 경우 0.6 IoU threshold가, AP<sup>large</sup>의 경우 0.7 IoU threshold가 적용됩니다.
+* 일반적으로 mAP는 다음과 같이 적용된다.
+ - AP<sup>small</sup> : 32x32 이하의 작은 객체
+ - AP<sup>medium</sup>: 32x32 이상, 96x96 이하의 객체
+ - AP<sup>large</sup> : 96x96 이상의 큰 객체
+* 이미지 입력 크기에 따라 위 평가지표는 적절하지 않으므로, 다음과 같이 적용된다.
+ - AP<sup>small</sup> : bounding box의 넓이가 (1/6)<sup>2</sup> 이하인 객체
+ - AP<sup>medium</sup>: bounding box의 넓이가 (1/6)<sup>2</sup> 이상, (1/3)<sup>2</sup> 이하인 객체
+ - AP<sup>large</sup> : bounding box의 넓이가 (1/3)<sup>2</sup> 이상인 객체
+* 그리고 IoU threshold는 다음과 같이 적용된다.
+ - AP<sup>small</sup> : 0.5
+ - AP<sup>medium</sup>: 0.6
+ - AP<sup>large</sup> : 0.7
 
 #### :radio_button: COCO2017 Dataset
 |Model|Size|pretrained|AP<sup>0.5:0.95</sup>|AP<sup>50</sup>|AP<sup>75</sup>|AP<sup>small</sup>|AP<sup>midium</sup>|AP<sup>large</sup>|
