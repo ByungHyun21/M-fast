@@ -41,7 +41,7 @@ def train(rank:int):
         config, 0, config['DDP_WORLD_SIZE'], config['DEVICE'], 'valid', 
         preprocessor=preprocessor, augmentator=augmentator)
 
-    
+    # TODO: 옵티마이저를 네트워크마다 다르게 설정할 필요가 있음, Config 파일에 옵티마이저 설정 추가
     # optimizer = optim.Adam(model.parameters(), lr=config['LR'], betas=(0.9, 0.999), weight_decay=config['WEIGHT_DECAY'])
     optimizer = optim.SGD(model.model.parameters(), lr=config['LR'], momentum=0.9, weight_decay=config['WEIGHT_DECAY'])
     
@@ -57,13 +57,7 @@ def train(rank:int):
     scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=custom_scheduler)
     
     # metric
-    metric_mAP = mAP()
-    
-    #TODO: 테스트용
-    # with open('model/config/dataset/coco.yaml') as f:
-    #     target = yaml.load(f, Loader=yaml.SafeLoader)
-    #     metric_mAP.set(target['DATASET'], target['CATEGORY'], target['CLASS'])
-    #     metric_mAP(model)
+    metric_mAP = mAP(config)
     
     step = -1
     epoch = -1
@@ -91,7 +85,7 @@ def train(rank:int):
             manager.accumulate_loss(loss)
             pbar.set_postfix_str(manager.loss_print() + f"lr: {scheduler.get_last_lr()[0]:.6f}")
             
-        dict_train = manager.loss_dict('train/')
+        dict_train = manager.get_loss_dict('train/')
         manager.wandb_report(epoch, dict_train)
 
         # # # # #
@@ -107,20 +101,21 @@ def train(rank:int):
             manager.accumulate_loss(loss)
             pbar.set_postfix_str(manager.loss_print())
 
-        dict_valid = manager.loss_dict('valid/')
+        dict_valid = manager.get_loss_dict('valid/')
         manager.wandb_report(epoch, dict_valid)
         
         # # # # #
-        # report sample
+        # report etc
+        manager.wandb_report({'lr': scheduler.get_last_lr()[0]})
         if ('Object Detection' in config['TASK']) and (epoch % 10 == 0):
-            manager.wandb_report_sample(epoch)
+            manager.wandb_report_object_detection(epoch, model)
         
         # # # # #
         # Metric
         if 'mAP' in config['METRIC']:
-            metric_mAP.set(config['DATASET'], config['CATEGORY'], config['CLASS'])
-            metric_mAP(model)
-            pass
+            metric_mAP.set(config['DATASET'], config['CATEGORY'], config['CLASS'], model.model_class)
+            mAPs = metric_mAP(model)
+            manager.wandb_report(epoch, mAPs)
         
         # # # # #
         # Save
@@ -132,23 +127,27 @@ def train(rank:int):
     if 'mAP' in config['METRIC']:
         with open('model/config/dataset/coco.yaml') as f:
             target = yaml.load(f, Loader=yaml.SafeLoader)
-        metric_mAP.set(target['DATASET'], target['CATEGORY'], target['CLASS'])
-        metric_mAP(model)
+        metric_mAP.set(target['DATASET'], target['CATEGORY'], target['CLASS'], model.model_class)
+        metric_mAP.reset()
+        mAPs = metric_mAP(model)
     
         with open('model/config/dataset/voc.yaml') as f:
             target = yaml.load(f, Loader=yaml.SafeLoader)
-        metric_mAP.set(target['DATASET'], target['CATEGORY'], target['CLASS'])
-        metric_mAP(model)
+        metric_mAP.set(target['DATASET'], target['CATEGORY'], target['CLASS'], model.model_class)
+        metric_mAP.reset()
+        mAPs = metric_mAP(model)
     
         with open('model/config/dataset/crowdhuman.yaml') as f:
             target = yaml.load(f, Loader=yaml.SafeLoader)
-        metric_mAP.set(target['DATASET'], target['CATEGORY'], target['CLASS'])
-        metric_mAP(model)
+        metric_mAP.set(target['DATASET'], target['CATEGORY'], target['CLASS'], model.model_class)
+        metric_mAP.reset()
+        mAPs = metric_mAP(model)
     
         with open('model/config/dataset/argoseye.yaml') as f:
             target = yaml.load(f, Loader=yaml.SafeLoader)
-        metric_mAP.set(target['DATASET'], target['CATEGORY'], target['CLASS'])
-        metric_mAP(model)
+        metric_mAP.set(target['DATASET'], target['CATEGORY'], target['CLASS'], model.model_class)
+        metric_mAP.reset()
+        mAPs = metric_mAP(model)
         
         
         

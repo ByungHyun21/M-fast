@@ -91,7 +91,7 @@ python train_model.py --config {config 경로} --coco
 #### :radio_button: 2016
 - [ ] YoloV1 (You Only Look Once, CVPR 2016)
 - [x] SSD (Single Shot MultiBox Detector, ECCV 2016)
-  - [ ] vgg16, [ ] mobilenet-v1, [x] mobilenet-v2, [ ] mobilenet-v3
+  - vgg16, mobilenet-v1, mobilenet-v2, mobilenet-v3
 - [ ] YOLO9000 (YOLO9000: Better, Faster, Stronger, CVPR 2017)
 
 #### :radio_button: 2019
@@ -109,7 +109,7 @@ python train_model.py --config {config 경로} --coco
  - AP<sup>small</sup> : 32x32 이하의 작은 객체
  - AP<sup>medium</sup>: 32x32 이상, 96x96 이하의 객체
  - AP<sup>large</sup> : 96x96 이상의 큰 객체
-* 이미지 입력 크기에 따라 위 평가지표는 적절하지 않으므로, 다음과 같이 적용된다.
+* 이미지 입력 크기가 다양한 상황에서 위 평가지표는 적절하지 않으므로, 다음과 같이 적용된다.
  - AP<sup>small</sup> : bounding box의 넓이가 (1/6)<sup>2</sup> 이하인 객체
  - AP<sup>medium</sup>: bounding box의 넓이가 (1/6)<sup>2</sup> 이상, (1/3)<sup>2</sup> 이하인 객체
  - AP<sup>large</sup> : bounding box의 넓이가 (1/3)<sup>2</sup> 이상인 객체

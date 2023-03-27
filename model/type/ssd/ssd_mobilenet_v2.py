@@ -15,6 +15,8 @@ class ssd_mobilenet_v2(nn.Module):
         # self.ddp_rank = ddp_rank
         self.model_name = config['METHOD'] + '_' + config['TYPE']
         self.nc = len(config['CLASS']) + 5 # number of class, 5 is for background(1), regression(4)
+        self.device = config['DEVICE']
+        self.model_class = config['CLASS']
         
         bias = config['BIAS']
         anchor_n = config['ANCHOR_N']

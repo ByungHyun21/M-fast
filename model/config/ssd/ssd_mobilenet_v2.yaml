@@ -6,7 +6,7 @@ METRIC: ['mAP']
 LOSS: ['Total', 'Class', 'Regression']
 BACKBONE_WEIGHT: 'torchvision' # {None, 'torchvision'}
 PRETRAINED_WEIGHT: None # weight_path
-INPUT_SIZE: [300, 300] # (height, width), min size 224 x 224
+INPUT_SIZE: [300, 300] # (height, width)
 
 
 # System
