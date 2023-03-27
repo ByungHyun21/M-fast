@@ -4,8 +4,6 @@
 Mono AI 
 
 ## :small_blue_diamond: TODO 
-- mAP 지원
-- wawndb bounding box debugger 지원
 - One-node, Multi-GPU 지원
 - Multi-node, Multi-GPU 지원
 - Target에 따른 학습 파이프라인 지원(acacia, belladonna, etc.)
@@ -28,7 +26,7 @@ docker run -it --rm mfast \
 --runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=0 \
 -v {M-fast 경로}:/M-fast \
 -v {데이터셋 경로}:/dataset \ 
--shm-size=8G
+--shm-size=8G
 ```
 
 예시

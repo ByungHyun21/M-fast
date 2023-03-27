@@ -30,15 +30,7 @@ def configuration(opt):
             dataset = yaml.load(f, Loader=yaml.SafeLoader)
 
     config.update(dataset)
-    
-    # GPU configuration
-    if torch.cuda.is_available():
-        torch.set_default_tensor_type('torch.cuda.FloatTensor')
-        config['DEVICE'] = 'cuda'
-    else:
-        torch.set_default_tensor_type('torch.FloatTensor')
-        config['DEVICE'] = 'cpu'
-    
+
     # DDP configuration    
     if platform.system() == 'Windows':
         config.update({'DDP_BACKEND': 'gloo'})

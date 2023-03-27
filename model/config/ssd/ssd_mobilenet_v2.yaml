@@ -10,8 +10,8 @@ INPUT_SIZE: [300, 300] # (height, width)
 
 
 # System
-BUFFER_SIZE: 4
-WORKERS: 2 # workers per gpu
+BUFFER_SIZE: 1
+WORKERS: 1 # workers per gpu
 
 #HyperParameter
 ### Network
@@ -27,7 +27,7 @@ NMS_IOU_THRESHOLD: 0.5
 STEPS: [300000, 350000, 400000]
 LR: 0.01
 BATCH_PER_GPU: 8
-BATCH_SIZE: 16 # batch_size = (batch_size // N_gpu) * N_gpu
+ACCUMULATE_BATCH_SIZE: 256 # batch_size = (batch_size // N_gpu) * N_gpu
 WEIGHT_DECAY: 0.00005
 
 ### loss

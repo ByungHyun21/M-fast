@@ -64,33 +64,41 @@ class report_manager():
         
         class_id_to_label = {}
         for i in range(len(model.model_class)):
-            class_id_to_label.update({i:model.model_class[i]})
+            class_id_to_label.update({int(i):model.model_class[i]})
             
         model.eval()
         for sample_dir in sample_dirs:
             img_list = os.listdir(os.path.join('sample', sample_dir))
             
+            wandb_images = []
             for img_name in img_list:
                 img = cv2.imread(os.path.join('sample', sample_dir, img_name))
+                img_resize = cv2.resize(img, (model.input_size[1], model.input_size[0]))
+                
                 h, w, _ = img.shape
-                detections = model(torch.from_numpy(img).permute(2, 0, 1).float().unsqueeze(0).to(model.device))
-                # detections : [batch, [class, score, xmin, ymin, xmax, ymax]]
+                detections = model(torch.from_numpy(img_resize).permute(2, 0, 1).float().unsqueeze(0).to(model.device))
+                # detections : [batch, N_pred, [class, score, xmin, ymin, xmax, ymax]]
+                detections = detections[0].cpu().detach().numpy()
+                # detections : N_pred, [class, score, xmin, ymin, xmax, ymax]
                 
                 all_boxes = []
                 for detection in detections:
                     box_data = {"position" : {
-                    "minX" : detection[2] * w,
-                    "maxX" : detection[4] * w,
-                    "minY" : detection[3] * h,
-                    "maxY" : detection[5] * h} ,
-                    "class_id" : model.model_class[detection[0]],
+                    "minX" : float(detection[2] * w),
+                    "maxX" : float(detection[4] * w),
+                    "minY" : float(detection[3] * h),
+                    "maxY" : float(detection[5] * h)} ,
+                    "class_id" : int(detection[0]),
                     # optionally caption each box with its class and score
-                    "box_caption" : "%s (%.3f)" % (detection[0], detection[1]),
+                    "box_caption" : "%s (%.3f)" % (str(int(detection[0])), float(detection[1])),
                     "domain" : "pixel",
-                    "scores" : { "score" : detection[1] }}
+                    "scores" : { "score" : float(detection[1]) }}
                     all_boxes.append(box_data)
 
                 # log to wandb: raw image, predictions, and dictionary of class labels for each class id
-                if self.rank == 0 and (self.wandb_entity is not None):
-                    wandb.Image(img, boxes = {"predictions": {"box_data": all_boxes, "class_labels" : class_id_to_label}})
+                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                wandb_images.append(wandb.Image(img, boxes = {"predictions": {"box_data": all_boxes, "class_labels" : class_id_to_label}}))
+                
+            if self.rank == 0 and (self.wandb_entity is not None):    
+                wandb.log({"Object Detection/" + sample_dir: wandb_images}, step=epoch)
                 

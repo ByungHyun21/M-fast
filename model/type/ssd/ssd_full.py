@@ -6,6 +6,7 @@ class ssd_full(nn.Module):
         super().__init__()
         self.device = config['DEVICE']
         self.model_class = config['CLASS']
+        self.input_size = config['INPUT_SIZE']
 
         self.model = model
         self.anchor = torch.from_numpy(anchor).float().to('cpu').to(config['DEVICE'])

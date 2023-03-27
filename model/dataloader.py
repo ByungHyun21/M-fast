@@ -9,7 +9,7 @@ import numpy as np
 
 import torch
 
-from multiprocessing import Process, Pool, Queue
+from multiprocessing import Process, Pool, Queue, Lock
 import psutil
 
 class dataset():
@@ -49,15 +49,16 @@ class dataset():
         #         valid[idx] = False
         
         self.data = [item for keep, item in zip(valid, data) if keep]   
+        # self.data = self.data[:config['ACCUMULATE_BATCH_SIZE']]
         
         random.shuffle(data)
         self.n_data = len(self.data)
-        self.steps_per_epoch = self.n_data // config['BATCH_SIZE']
+        self.steps_per_epoch = self.n_data // (config['BATCH_PER_GPU'] * config['DDP_WORLD_SIZE'])
         
-        self.buffer = Queue(maxsize=config['BATCH_PER_GPU'] * config['BUFFER_SIZE'])
-        self.batch = Queue(maxsize=config['BUFFER_SIZE'])
-        self.dataloader = dataloader(config, self.data, self.buffer, preprocessor, augmentator, ddp_rank, ddp_size, device, istrain)
-        self.batchloader = batchloader(config, self.buffer, self.batch)
+        self.buffer_sample = Queue(maxsize=config['BATCH_PER_GPU'] * config['BUFFER_SIZE'])
+        self.buffer_batch = Queue(maxsize=config['BUFFER_SIZE'])
+        self.dataloader = dataloader(config, self.data, self.buffer_sample, preprocessor, augmentator, ddp_rank, ddp_size, device, istrain)
+        self.batchloader = batchloader(config, self.buffer_sample, self.buffer_batch)
     
     def check_data(self, data):
         error = False
@@ -81,7 +82,7 @@ class dataset():
             return True
     
 class dataloader():
-    def __init__(self, config, data, buffer, preprocessor, augmentator, ddp_rank, ddp_size, device, istrain):
+    def __init__(self, config, data, buffer_sample, preprocessor, augmentator, ddp_rank, ddp_size, device, istrain):
         self.preprocessor = preprocessor
         self.augmentator = augmentator
         self.ddp_rank = ddp_rank
@@ -94,10 +95,10 @@ class dataloader():
         
         self.pool = []
         for _ in range(config['WORKERS']):
-            self.pool.append(Process(target=self.run, args=(data, buffer), daemon=True))
+            self.pool.append(Process(target=self.run, args=(data, buffer_sample), daemon=True))
             self.pool[-1].start()
             
-    def run(self, data, buffer):
+    def run(self, data, buffer_sample):
         idxlist = list(range(len(data)))
         
         while True:
@@ -108,8 +109,8 @@ class dataloader():
                 
                 if img == None or gt == None:
                     continue
-            
-                buffer.put([img, gt])
+                
+                buffer_sample.put([img, gt])
             
             
     def get_item(self, data):
@@ -150,17 +151,18 @@ class dataloader():
         return img, labels, boxes
     
 class batchloader():
-    def __init__(self, config, buffer, batch):
+    def __init__(self, config, buffer_sample, buffer_batch):
         self.batch_size = config['BATCH_PER_GPU']
-        self.pool = Process(target=self.run, args=(buffer, batch), daemon=True)
+        self.pool = Process(target=self.run, args=(buffer_sample, buffer_batch), daemon=True)
         self.pool.start()
         
-    def run(self, buffer, batch):
+    def run(self, buffer_sample, buffer_batch):
         while True:
+            time.sleep(0.01)
             batch_img = []
             batch_gt = []
             for i in range(self.batch_size):
-                img, gt = buffer.get()
+                img, gt = buffer_sample.get()
                 
                 batch_img.append(img)
                 batch_gt.append(gt)
@@ -168,4 +170,4 @@ class batchloader():
             batch_img = torch.stack(batch_img, dim=0)
             batch_gt = torch.stack(batch_gt, dim=0)
             
-            batch.put([batch_img, batch_gt])
+            buffer_batch.put([batch_img, batch_gt])

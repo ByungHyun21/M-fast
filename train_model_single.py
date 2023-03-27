@@ -22,17 +22,26 @@ opt = parser.parse_args()
 
 #TODO: 테스트용
 opt.coco = True
+# opt.wandb = 'byunghyun'
 
 config = configuration(opt)
 
-assert config['BATCH_SIZE'] % (config['BATCH_PER_GPU'] * config['DDP_WORLD_SIZE']) == 0, 'BATCH_SIZE % (BATCH_PER_GPU * DDP_WORLD_SIZE) != 0'
+assert config['ACCUMULATE_BATCH_SIZE'] % (config['BATCH_PER_GPU'] * config['DDP_WORLD_SIZE']) == 0, 'ACCUMULATE_BATCH_SIZE % (BATCH_PER_GPU * DDP_WORLD_SIZE) != 0'
 
 # # # # #
 # Training
 def train(rank:int):
-    config['DEVICE'] = config['DEVICE'] + ':' + str(rank)
+    # GPU configuration
+    if torch.cuda.is_available():
+        torch.set_default_tensor_type('torch.cuda.FloatTensor')
+        config['DEVICE'] = 'cuda' + ':' + str(rank)
+    else:
+        torch.set_default_tensor_type('torch.FloatTensor')
+        config['DEVICE'] = 'cpu'
     
     model, preprocessor, augmentator, loss_func, manager = network_manager(config, rank, istrain=True)
+    model.model.to(config['DEVICE'])
+    model.to(config['DEVICE'])
 
     ds_train = dataset(
         config, 0, config['DDP_WORLD_SIZE'], config['DEVICE'], 'train', 
@@ -57,7 +66,9 @@ def train(rank:int):
     scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=custom_scheduler)
     
     # metric
-    metric_mAP = mAP(config)
+    if 'mAP' in config['METRIC']:
+        metric_mAP = mAP(config)
+        metric_mAP.set(config['DATASET'], config['CATEGORY'], config['CLASS'], model.model_class)
     
     step = -1
     epoch = -1
@@ -74,7 +85,7 @@ def train(rank:int):
         for _ in pbar:
             step += 1
             
-            img, gt = ds_train.batch.get()
+            img, gt = ds_train.buffer_batch.get()
             optimizer.zero_grad()
             pred = model.model(img.to(config['DEVICE']))
             loss = loss_func(pred, gt.to(config['DEVICE']))
@@ -94,7 +105,7 @@ def train(rank:int):
         manager.reset()
         pbar = tqdm(range(ds_valid.steps_per_epoch), desc='Validation', ncols=0)
         for _ in pbar:
-            img, gt = ds_valid.batch.get()
+            img, gt = ds_valid.buffer_batch.get()
             pred = model.model(img.to(config['DEVICE']))
             loss = loss_func(pred, gt.to(config['DEVICE']))
             
@@ -106,16 +117,17 @@ def train(rank:int):
         
         # # # # #
         # report etc
-        manager.wandb_report({'lr': scheduler.get_last_lr()[0]})
-        if ('Object Detection' in config['TASK']) and (epoch % 10 == 0):
+        manager.wandb_report(epoch, {'lr': scheduler.get_last_lr()[0]})
+        if ('Object Detection' in config['TASK']) and (epoch % 10 == 0) and (epoch != 0):
             manager.wandb_report_object_detection(epoch, model)
         
         # # # # #
         # Metric
         if 'mAP' in config['METRIC']:
-            metric_mAP.set(config['DATASET'], config['CATEGORY'], config['CLASS'], model.model_class)
+            metric_mAP.reset()
             mAPs = metric_mAP(model)
             manager.wandb_report(epoch, mAPs)
+            metric_mAP.print()
         
         # # # # #
         # Save
@@ -130,24 +142,28 @@ def train(rank:int):
         metric_mAP.set(target['DATASET'], target['CATEGORY'], target['CLASS'], model.model_class)
         metric_mAP.reset()
         mAPs = metric_mAP(model)
+        metric_mAP.print()
     
         with open('model/config/dataset/voc.yaml') as f:
             target = yaml.load(f, Loader=yaml.SafeLoader)
         metric_mAP.set(target['DATASET'], target['CATEGORY'], target['CLASS'], model.model_class)
         metric_mAP.reset()
         mAPs = metric_mAP(model)
+        metric_mAP.print()
     
         with open('model/config/dataset/crowdhuman.yaml') as f:
             target = yaml.load(f, Loader=yaml.SafeLoader)
         metric_mAP.set(target['DATASET'], target['CATEGORY'], target['CLASS'], model.model_class)
         metric_mAP.reset()
         mAPs = metric_mAP(model)
+        metric_mAP.print()
     
         with open('model/config/dataset/argoseye.yaml') as f:
             target = yaml.load(f, Loader=yaml.SafeLoader)
         metric_mAP.set(target['DATASET'], target['CATEGORY'], target['CLASS'], model.model_class)
         metric_mAP.reset()
         mAPs = metric_mAP(model)
+        metric_mAP.print()
         
         
         

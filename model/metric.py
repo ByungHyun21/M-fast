@@ -36,14 +36,14 @@ class mAP(object):
                 data.append({'image':image, 'label':label})
         
         #check dataset
-        log('check dataset')
         valid = np.ones(len(data)).astype(np.bool8)
         for idx, sample in enumerate(data):
             isgood = self.check_data(sample)    
             if not isgood:
                 valid[idx] = False
         
-        self.data = [item for keep, item in zip(valid, data) if keep]   
+        self.data = [item for keep, item in zip(valid, data) if keep] 
+        # self.data = self.data[:10]  
         
         #mAP Calculation
         # mAP 0.5:0.05:0.95
@@ -76,8 +76,6 @@ class mAP(object):
         self.mAP = {}
         
     def __call__(self, model):
-        log(self.dataset + ' : mAP Calculation')
-        
         model.eval()
         
         pbar = tqdm(self.data, desc=self.dataset + ' : calculation TP/FP Table', ncols=0)
@@ -98,14 +96,14 @@ class mAP(object):
         # Precision/Recall Table
         name = [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95]
         self.mAP.update({'metric/mAP_0.5_0.95': 0})
-        for idx, calculator in enumerate(self.calculators[:9]):
+        for idx, calculator in enumerate(self.calculators[:10]):
             self.mAP.update({'metric/mAP_' + str(name[idx]): calculator.get_mAP_mean()})
             self.mAP['metric/mAP_0.5_0.95'] += name[idx] * self.mAP['metric/mAP_' + str(name[idx])]
             
         self.mAP['metric/mAP_0.5_0.95'] /= sum(name)
         
         name = ['small', 'medium', 'large']
-        for idx, calculator in enumerate(self.calculators[9:]):
+        for idx, calculator in enumerate(self.calculators[10:]):
             self.mAP.update({'metric/mAP_' + str(name[idx]): calculator.get_mAP_mean()})
             
         return self.mAP
@@ -169,7 +167,15 @@ class mAP(object):
         img = cv2.imread(data['image'])
             
         return img, label, box
-            
+    
+    def print(self):
+        print('dataset :', self.dataset)
+        print('mAP 0.5_0.95 :', self.mAP['metric/mAP_0.5_0.95'])
+        print('mAP 0.5 :', self.mAP['metric/mAP_0.5'])
+        print('mAP 0.75 :', self.mAP['metric/mAP_0.75'])
+        print('mAP small :', self.mAP['metric/mAP_small'])
+        print('mAP medium :', self.mAP['metric/mAP_medium'])
+        print('mAP large :', self.mAP['metric/mAP_large'])
         
 class mAP_calculator(object):
     def __init__(self, min_area, max_area, iou_threshold, n_class):
@@ -343,7 +349,7 @@ class mAP_calculator(object):
                     sum_FP += 1
             
                 # pr_curve : n_class * [recall, precision]    
-                pr_curve[idx].append([sum_FP / self.n_gt[idx], sum_TP / (sum_TP + sum_FP)])
+                pr_curve[idx].append([sum_TP / self.n_gt[idx], sum_TP / (sum_TP + sum_FP)])
 
         # pr_curve to mAP
         for idx, pr_curve_one_class in enumerate(pr_curve):
@@ -368,4 +374,8 @@ class mAP_calculator(object):
             if mAP != 0:
                 count += 1
                 self.mAP_mean += mAP
-        self.mAP_mean /= count
+                
+        if count != 0:
+            self.mAP_mean /= count
+        else:
+            self.mAP_mean = 0.0
