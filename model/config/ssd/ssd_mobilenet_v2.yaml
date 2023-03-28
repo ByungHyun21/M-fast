@@ -25,9 +25,9 @@ NMS_IOU_THRESHOLD: 0.5
 
 ### Training
 STEPS: [300000, 350000, 400000]
-LR: 0.01
-BATCH_PER_GPU: 8
-ACCUMULATE_BATCH_SIZE: 256 # batch_size = (batch_size // N_gpu) * N_gpu
+LR: 0.001
+BATCH_PER_GPU: 16
+ACCUMULATE_BATCH_SIZE: 64 # batch_size = (batch_size // N_gpu) * N_gpu
 WEIGHT_DECAY: 0.00005
 
 ### loss

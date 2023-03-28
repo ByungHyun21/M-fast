@@ -35,6 +35,8 @@ class mAP(object):
                 image = str(image_dir / sub_dir / anno.replace('.xml', '.jpg'))
                 data.append({'image':image, 'label':label})
         
+        # data = data[:200]  
+        
         #check dataset
         valid = np.ones(len(data)).astype(np.bool8)
         for idx, sample in enumerate(data):
@@ -43,7 +45,7 @@ class mAP(object):
                 valid[idx] = False
         
         self.data = [item for keep, item in zip(valid, data) if keep] 
-        # self.data = self.data[:10]  
+        
         
         #mAP Calculation
         # mAP 0.5:0.05:0.95
@@ -213,15 +215,18 @@ class mAP_calculator(object):
         for idx, (p, d) in enumerate(zip(pt, dt)):
             self.n_gt[idx] += len(d) # accumulate n_gt
             
-            if len(d) == 0:
-                continue
             if len(p) == 0:
                 continue
             
-            p = np.array(p)
-            d = np.array(d)
-            table_TPFP = self.calc_TPFP(p, d, self.iou_threshold)
-            
+            if len(d) == 0: # no gt
+                table_TPFP = []
+                for p_ in p:
+                    table_TPFP.append([p_[1], 0]) # All prediction is FP
+            else:
+                p = np.array(p)
+                d = np.array(d)
+                table_TPFP = self.calc_TPFP(p, d, self.iou_threshold)
+                
             for m in table_TPFP:
                 self.table_TPFP[idx].append(m)
     
@@ -267,8 +272,6 @@ class mAP_calculator(object):
         
         ious = self.jaccard_iou_boxes(p[:, 2:], d[:, 2:])
         # ious : [N_pred, N_gt]
-        
-        ious = ious * (ious >= iou_threshold)
         
         table_TPFP = []
         
@@ -334,9 +337,11 @@ class mAP_calculator(object):
         for idx, t in enumerate(self.table_TPFP):
             if len(t) == 0:
                 continue
+            if self.n_gt[idx] == 0:
+                continue
             
             t = np.array(t)
-            order = np.argsort(t[:, 0])
+            order = np.argsort(-t[:, 0]) # sort by descending order
             t = t[order] # sort by score
             
             sum_TP = 0
@@ -359,15 +364,18 @@ class mAP_calculator(object):
             
             pr_point = [[0, 1]] # [recall, precision]
             for pr in pr_curve_one_class:
-                if pr[1] > pr_point[-1][1]: # precision is higher than previous point
+                if pr[1] >= pr_point[-1][1]: # precision is higher than previous point
                     pr_point[-1][0] = pr[0]
                     pr_point[-1][1] = pr[1]
                 else: # precision is lower than previous point
-                    pr_point.append(pr)
+                    if pr_point[-1][0] == pr[0]:
+                        continue
+                    else:
+                        pr_point.append(pr)
             
-            for point in pr_point[1:]:
+            for i in range(len(pr_point[1:])):
                 # mAP : sum of (recall - previous_recall) * precision
-                self.mAP[idx] += (point[0] - pr_point[0][0]) * point[1]
+                self.mAP[idx] += (pr_point[i+1][0] - pr_point[i][0]) * pr_point[i+1][1]
         
         count = 0
         for mAP in self.mAP:

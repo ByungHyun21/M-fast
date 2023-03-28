@@ -36,6 +36,8 @@ class dataset():
                 label = str(label_dir / sub_dir / anno)
                 image = str(image_dir / sub_dir / anno.replace('.xml', '.jpg'))
                 data.append({'image':image, 'label':label})
+                
+        # data = data[:config['ACCUMULATE_BATCH_SIZE']*10]
         
         #check dataset
         valid = np.ones(len(data)).astype(np.bool8)
@@ -49,11 +51,11 @@ class dataset():
         #         valid[idx] = False
         
         self.data = [item for keep, item in zip(valid, data) if keep]   
-        # self.data = self.data[:config['ACCUMULATE_BATCH_SIZE']]
         
         random.shuffle(data)
         self.n_data = len(self.data)
-        self.steps_per_epoch = self.n_data // (config['BATCH_PER_GPU'] * config['DDP_WORLD_SIZE'])
+        self.steps_per_epoch = self.n_data // config['ACCUMULATE_BATCH_SIZE']
+        self.iters_per_step = config['ACCUMULATE_BATCH_SIZE'] // (config['BATCH_PER_GPU'] * config['DDP_WORLD_SIZE'])
         
         self.buffer_sample = Queue(maxsize=config['BATCH_PER_GPU'] * config['BUFFER_SIZE'])
         self.buffer_batch = Queue(maxsize=config['BUFFER_SIZE'])

@@ -22,7 +22,7 @@ opt = parser.parse_args()
 
 #TODO: 테스트용
 opt.coco = True
-# opt.wandb = 'byunghyun'
+opt.wandb = 'byunghyun'
 
 config = configuration(opt)
 
@@ -70,9 +70,10 @@ def train(rank:int):
         metric_mAP = mAP(config)
         metric_mAP.set(config['DATASET'], config['CATEGORY'], config['CLASS'], model.model_class)
     
-    step = -1
+    step = 0
     epoch = -1
     best_loss = float('inf')
+    scaler = torch.cuda.amp.GradScaler()
     while True:
         epoch += 1
         print(f"\n\nModel: {config['MODEL']}, epoch: {epoch}, step: {step}")
@@ -85,16 +86,26 @@ def train(rank:int):
         for _ in pbar:
             step += 1
             
-            img, gt = ds_train.buffer_batch.get()
             optimizer.zero_grad()
-            pred = model.model(img.to(config['DEVICE']))
-            loss = loss_func(pred, gt.to(config['DEVICE']))
-            loss[0].backward() # loss[0] = total loss
-            optimizer.step()
+            for i in range(ds_train.iters_per_step):
+                img, gt = ds_train.buffer_batch.get()
+                pred = model.model(img.to(config['DEVICE']))
+                loss = loss_func(pred, gt.to(config['DEVICE']))
+                
+                loss_acc = loss[0] / ds_train.iters_per_step
+                
+                scaler.scale(loss_acc).backward()
+            
+            scaler.step(optimizer)
+            scaler.update()
             scheduler.step()
             
             manager.accumulate_loss(loss)
             pbar.set_postfix_str(manager.loss_print() + f"lr: {scheduler.get_last_lr()[0]:.6f}")
+            
+            # loss[0].backward() # loss[0] = total loss
+            # optimizer.step()
+            # scheduler.step()
             
         dict_train = manager.get_loss_dict('train/')
         manager.wandb_report(epoch, dict_train)
