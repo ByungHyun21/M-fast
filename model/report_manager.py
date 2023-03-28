@@ -21,8 +21,7 @@ class AverageMeter:
         self.sum = 0
 
 class report_manager():
-    def __init__(self, config, rank):
-        self.rank = rank
+    def __init__(self, config):
         self.wandb_entity = config['WANDB']
 
         self.loss_name = config['LOSS']
@@ -31,8 +30,10 @@ class report_manager():
         for i in range(n_loss):
             self.loss.append(AverageMeter())
         
-        if self.rank == 0 and (self.wandb_entity is not None):
+        self.wandb_enabled = False
+        if self.wandb_entity is not None:
             wandb.init(project='M-FAST', entity=self.wandb_entity, config=config)
+            self.wandb_enabled = True
         
     def reset(self):
         for i in range(len(self.loss)):
@@ -55,11 +56,17 @@ class report_manager():
             dict_out[prefix + self.loss_name[i]] = self.loss[i].get_mean()
         return dict_out
     
-    def wandb_report(self, epoch,  dict_out):
-        if self.rank == 0 and (self.wandb_entity is not None):
+    def wandb_report(self, rank, epoch,  dict_out):
+        if rank != 0:
+            return
+        
+        if self.wandb_entity is not None:
             wandb.log(dict_out, step=epoch)
             
-    def wandb_report_object_detection(self, epoch, model):
+    def wandb_report_object_detection(self, rank, epoch, model):
+        if rank != 0:
+            return 
+        
         sample_dirs = os.listdir('sample')
         
         class_id_to_label = {}
@@ -99,6 +106,6 @@ class report_manager():
                 img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
                 wandb_images.append(wandb.Image(img, boxes = {"predictions": {"box_data": all_boxes, "class_labels" : class_id_to_label}}))
                 
-            if self.rank == 0 and (self.wandb_entity is not None):    
+            if self.wandb_entity is not None:    
                 wandb.log({"Object Detection/" + sample_dir: wandb_images}, step=epoch)
                 

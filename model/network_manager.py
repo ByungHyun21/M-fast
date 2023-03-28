@@ -9,7 +9,6 @@ def network_manager(config, rank, istrain):
         from .type.ssd.augmentator import augmentator
         from .type.ssd.preprocess import preprocessor
         from .type.ssd.loss import loss
-        from .type.ssd.report_manager import report_manager
         
         # if config['TYPE'] == 'vgg16':    
         #     model = ssd_vgg16(config)
@@ -23,7 +22,4 @@ def network_manager(config, rank, istrain):
         augmentator = augmentator(config)
         loss = loss(config)
         
-        if istrain:
-            manager = report_manager(config, rank)
-        
-    return model_full, preprocessor, augmentator, loss, manager
+    return model_full, preprocessor, augmentator, loss

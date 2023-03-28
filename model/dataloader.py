@@ -8,26 +8,40 @@ from pathlib import Path
 import numpy as np
 
 import torch
+from torch.utils.data import Dataset, DataLoader
+from torch.utils.data.distributed import DistributedSampler
 
-from multiprocessing import Process, Pool, Queue, Lock
-import psutil
+def get_dataloader(config, purpose, preprocessor=None, augmentator=None):
+    assert purpose in ['train', 'valid'], 'purpose must be train or valid'
+    assert preprocessor is not None, 'preprocessor is None'
+    assert augmentator is not None, 'augmentator is None'
+    
+    custom_dataset = dataset(config, purpose, preprocessor=preprocessor, augmentator=augmentator)
+    return DataLoader(custom_dataset, 
+                      batch_size=config['BATCH_SIZE_MULTI_GPU'] // config['DDP_WORLD_SIZE'] if config['DDP_WORLD_SIZE'] > 1 else config['BATCH_SIZE_SINGLE_GPU'],
+                      shuffle=True if config['DDP_WORLD_SIZE'] == 1 else False, 
+                      num_workers=config['WORKERS'], 
+                    #   generator=torch.Generator(device=config['DEVICE']),
+                      pin_memory=True, 
+                      drop_last=True, 
+                      sampler=DistributedSampler(custom_dataset) if config['DDP_WORLD_SIZE'] > 1 else None)
 
-class dataset():
-    def __init__(self, config, ddp_rank, ddp_size, device, purpose, preprocessor=None, augmentator=None):
-        self.ddp_rank = ddp_rank
-        self.ddp_size = ddp_size
+class dataset(Dataset):
+    def __init__(self, config, purpose, preprocessor=None, augmentator=None):
+        self.preprocessor = preprocessor
+        self.augmentator = augmentator
         self.dataset = Path(config['DATASET'])
         self.names = config['CLASS']
-        self.device = device
+        self.device = config['DEVICE']
 
         if purpose == 'train':
             image_dir = '/dataset' / self.dataset / Path('images_train')
             label_dir = '/dataset' / self.dataset / Path('annotations_train')
-            istrain = True
+            self.istrain = True
         if purpose == 'valid':
             image_dir = '/dataset' / self.dataset / Path('images_valid')
             label_dir = '/dataset' / self.dataset / Path('annotations_valid')
-            istrain = False
+            self.istrain = False
 
         data = []
         for sub_dir in config['CATEGORY']:
@@ -36,8 +50,6 @@ class dataset():
                 label = str(label_dir / sub_dir / anno)
                 image = str(image_dir / sub_dir / anno.replace('.xml', '.jpg'))
                 data.append({'image':image, 'label':label})
-                
-        # data = data[:config['ACCUMULATE_BATCH_SIZE']*10]
         
         #check dataset
         valid = np.ones(len(data)).astype(np.bool8)
@@ -52,15 +64,45 @@ class dataset():
         
         self.data = [item for keep, item in zip(valid, data) if keep]   
         
-        random.shuffle(data)
-        self.n_data = len(self.data)
-        self.steps_per_epoch = self.n_data // config['ACCUMULATE_BATCH_SIZE']
-        self.iters_per_step = config['ACCUMULATE_BATCH_SIZE'] // (config['BATCH_PER_GPU'] * config['DDP_WORLD_SIZE'])
+    def __len__(self):
+        return len(self.data)
+    
+    def __getitem__(self, idx):
+        img, labels, boxes = self.read_data(idx)
+    
+        img, labels, boxes = self.augmentator(img, labels, boxes, self.istrain)
         
-        self.buffer_sample = Queue(maxsize=config['BATCH_PER_GPU'] * config['BUFFER_SIZE'])
-        self.buffer_batch = Queue(maxsize=config['BUFFER_SIZE'])
-        self.dataloader = dataloader(config, self.data, self.buffer_sample, preprocessor, augmentator, ddp_rank, ddp_size, device, istrain)
-        self.batchloader = batchloader(config, self.buffer_sample, self.buffer_batch)
+        if len(labels) == 0 or len(boxes) == 0:
+            return None, None
+            
+        gt = self.preprocessor(labels, boxes)
+
+        return torch.from_numpy(img).permute(2, 0, 1).float(), torch.from_numpy(gt).float()
+    
+    def read_data(self, idx):
+        tree = ET().parse(self.data[idx]['label'])
+
+        labels = []
+        boxes = []
+        path = tree.find('path').text
+        filename = tree.find('filename').text
+        objects = tree.findall('object')
+        for obj in objects:
+            label = self.names.index(obj.find('class').text)
+            cx = float(obj.find('cx').text)
+            cy = float(obj.find('cy').text)
+            w = float(obj.find('w').text)
+            h = float(obj.find('h').text)
+            # labels.append([label])
+            labels.append(label)
+            boxes.append([cx, cy, w, h])
+        
+        img = cv2.imread(self.data[idx]['image'])
+
+        if img.shape[2] == 1:
+            img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+        
+        return img, labels, boxes
     
     def check_data(self, data):
         error = False
@@ -82,94 +124,3 @@ class dataset():
             return False
         else:
             return True
-    
-class dataloader():
-    def __init__(self, config, data, buffer_sample, preprocessor, augmentator, ddp_rank, ddp_size, device, istrain):
-        self.preprocessor = preprocessor
-        self.augmentator = augmentator
-        self.ddp_rank = ddp_rank
-        self.ddp_size = ddp_size
-        self.device = device
-        self.istrain = istrain
-        
-        self.names = config['CLASS']
-        self.buffer_size = config['BATCH_PER_GPU'] * config['BUFFER_SIZE']
-        
-        self.pool = []
-        for _ in range(config['WORKERS']):
-            self.pool.append(Process(target=self.run, args=(data, buffer_sample), daemon=True))
-            self.pool[-1].start()
-            
-    def run(self, data, buffer_sample):
-        idxlist = list(range(len(data)))
-        
-        while True:
-            random.shuffle(idxlist)
-            
-            for idx in idxlist:
-                img, gt = self.get_item(data[idx])
-                
-                if img == None or gt == None:
-                    continue
-                
-                buffer_sample.put([img, gt])
-            
-            
-    def get_item(self, data):
-        img, labels, boxes = self.get_data(data)
-    
-        img, labels, boxes = self.augmentator(img, labels, boxes, self.istrain)
-        
-        if len(labels) == 0 or len(boxes) == 0:
-            return None, None
-            
-        gt = self.preprocessor(labels, boxes)
-
-        return torch.from_numpy(img).permute(2, 0, 1).float(), torch.from_numpy(gt).float()
-        
-    def get_data(self, data):
-        tree = ET().parse(data['label'])
-
-        labels = []
-        boxes = []
-        path = tree.find('path').text
-        filename = tree.find('filename').text
-        objects = tree.findall('object')
-        for obj in objects:
-            label = self.names.index(obj.find('class').text)
-            cx = float(obj.find('cx').text)
-            cy = float(obj.find('cy').text)
-            w = float(obj.find('w').text)
-            h = float(obj.find('h').text)
-            # labels.append([label])
-            labels.append(label)
-            boxes.append([cx, cy, w, h])
-        
-        img = cv2.imread(data['image'])
-
-        if img.shape[2] == 1:
-            img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
-        
-        return img, labels, boxes
-    
-class batchloader():
-    def __init__(self, config, buffer_sample, buffer_batch):
-        self.batch_size = config['BATCH_PER_GPU']
-        self.pool = Process(target=self.run, args=(buffer_sample, buffer_batch), daemon=True)
-        self.pool.start()
-        
-    def run(self, buffer_sample, buffer_batch):
-        while True:
-            time.sleep(0.01)
-            batch_img = []
-            batch_gt = []
-            for i in range(self.batch_size):
-                img, gt = buffer_sample.get()
-                
-                batch_img.append(img)
-                batch_gt.append(gt)
-                
-            batch_img = torch.stack(batch_img, dim=0)
-            batch_gt = torch.stack(batch_gt, dim=0)
-            
-            buffer_batch.put([batch_img, batch_gt])

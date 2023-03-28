@@ -32,10 +32,12 @@ def configuration(opt):
     config.update(dataset)
 
     # DDP configuration    
-    if platform.system() == 'Windows':
-        config.update({'DDP_BACKEND': 'gloo'})
-    else:
-        config.update({'DDP_BACKEND': 'nccl'})
+    # if platform.system() == 'Windows':
+    #     config.update({'DDP_BACKEND': 'gloo'})
+    # else:
+    #     config.update({'DDP_BACKEND': 'nccl'})
+    
+    config.update({'DDP_BACKEND': 'gloo'})
     
     import socket
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -45,6 +47,8 @@ def configuration(opt):
     s.close()
     
     # localhost = one node with multiple GPUs
+    config.update({'DDP_MASTER_ADDR': 'localhost'})
+    config.update({'DDP_MASTER_PORT': str(port)})
     config.update({'DDP_INIT_METHOD': 'tcp://localhost:' + str(port)})
     config.update({'DDP_WORLD_SIZE': torch.cuda.device_count()})
         
