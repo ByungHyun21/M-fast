@@ -30,6 +30,7 @@ def configuration(opt):
             dataset = yaml.load(f, Loader=yaml.SafeLoader)
 
     config.update(dataset)
+    config.update({'NUM_CLASSES': len(config['CLASS'])})
 
     # DDP configuration    
     # if platform.system() == 'Windows':

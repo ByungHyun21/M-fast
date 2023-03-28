@@ -10,7 +10,7 @@ INPUT_SIZE: [300, 300] # (height, width)
 
 
 # System
-WORKERS: 2 # workers per gpu
+WORKERS: 1 # workers per gpu
 
 #HyperParameter
 ### Network
@@ -26,8 +26,9 @@ NMS_IOU_THRESHOLD: 0.5
 STEPS: [300000, 350000, 400000]
 LR: 0.001
 BATCH_SIZE_SINGLE_GPU: 16
-BATCH_SIZE_MULTI_GPU: 64 # BATCH_SIZE_MULTI_GPU will divide by GPU_NUM
+BATCH_SIZE_MULTI_GPU: 32 # BATCH_SIZE_MULTI_GPU will divide by GPU_NUM
 WEIGHT_DECAY: 0.00005
+MOMENTUM: 0.9
 
 ### loss
 LOSS_ALPHA: 1.0

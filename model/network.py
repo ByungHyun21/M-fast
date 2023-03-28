@@ -1,4 +1,4 @@
-def network_manager(config, rank, istrain):
+def network(config, rank, istrain):
     manager = None
 
     

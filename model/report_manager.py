@@ -21,7 +21,7 @@ class AverageMeter:
         self.sum = 0
 
 class report_manager():
-    def __init__(self, config):
+    def __init__(self, config:dict, rank:int):
         self.wandb_entity = config['WANDB']
 
         self.loss_name = config['LOSS']
@@ -31,7 +31,7 @@ class report_manager():
             self.loss.append(AverageMeter())
         
         self.wandb_enabled = False
-        if self.wandb_entity is not None:
+        if (rank == 0) and (self.wandb_entity is not None):
             wandb.init(project='M-FAST', entity=self.wandb_entity, config=config)
             self.wandb_enabled = True
         
@@ -56,15 +56,14 @@ class report_manager():
             dict_out[prefix + self.loss_name[i]] = self.loss[i].get_mean()
         return dict_out
     
-    def wandb_report(self, rank, epoch,  dict_out):
-        if rank != 0:
+    def wandb_report(self, epoch,  dict_out):
+        if self.wandb_enabled != 0:
             return
         
-        if self.wandb_entity is not None:
-            wandb.log(dict_out, step=epoch)
+        wandb.log(dict_out, step=epoch)
             
     def wandb_report_object_detection(self, rank, epoch, model):
-        if rank != 0:
+        if self.wandb_enabled != 0:
             return 
         
         sample_dirs = os.listdir('sample')
@@ -105,7 +104,6 @@ class report_manager():
                 # log to wandb: raw image, predictions, and dictionary of class labels for each class id
                 img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
                 wandb_images.append(wandb.Image(img, boxes = {"predictions": {"box_data": all_boxes, "class_labels" : class_id_to_label}}))
-                
-            if self.wandb_entity is not None:    
+              
                 wandb.log({"Object Detection/" + sample_dir: wandb_images}, step=epoch)
                 

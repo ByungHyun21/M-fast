@@ -16,12 +16,14 @@ def get_dataloader(config, purpose, preprocessor=None, augmentator=None):
     assert preprocessor is not None, 'preprocessor is None'
     assert augmentator is not None, 'augmentator is None'
     
+    batch_size = config['BATCH_SIZE_MULTI_GPU'] // config['DDP_WORLD_SIZE']
+    config.update({'BATCH_SIZE':batch_size})
+    
     custom_dataset = dataset(config, purpose, preprocessor=preprocessor, augmentator=augmentator)
     return DataLoader(custom_dataset, 
-                      batch_size=config['BATCH_SIZE_MULTI_GPU'] // config['DDP_WORLD_SIZE'] if config['DDP_WORLD_SIZE'] > 1 else config['BATCH_SIZE_SINGLE_GPU'],
+                      batch_size=batch_size,
                       shuffle=True if config['DDP_WORLD_SIZE'] == 1 else False, 
                       num_workers=config['WORKERS'], 
-                    #   generator=torch.Generator(device=config['DEVICE']),
                       pin_memory=True, 
                       drop_last=True, 
                       sampler=DistributedSampler(custom_dataset) if config['DDP_WORLD_SIZE'] > 1 else None)

@@ -22,16 +22,18 @@ TODO
 ```bash
 docker build --tag mfast .
 
-docker run -it --rm mfast \
+docker run -it --rm \
 --runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=0 \
 -v {M-fast 경로}:/M-fast \
 -v {데이터셋 경로}:/dataset \ 
---shm-size=8G
+--shm-size=8G \ 
+--network host \
+mfast 
 ```
 
 예시
 ```
-docker run -it --rm --gpus=all -v C:\M-fast:/M-fast -v C:\dataset:/dataset --shm-size=8g mfast
+docker run -it --rm --gpus=all -v C:\M-fast:/M-fast -v C:\dataset:/dataset --shm-size=8g --network host mfast
 ```
 
 ### :small_blue_diamond: Docker 내부에서 실행
