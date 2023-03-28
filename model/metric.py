@@ -8,8 +8,6 @@ import torch
 import numpy as np
 from tqdm import tqdm
 
-from model.utils import log
-
 class mAP(object):
     def __init__(self, config):
         super().__init__()
