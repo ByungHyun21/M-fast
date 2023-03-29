@@ -134,9 +134,10 @@ def run_sweep():
 if __name__ == '__main__':
     sweep_config = {
     'method': 'bayes',
+    'name': config_origin['MODEL'],
     'metric' : {
-        'name': 'valid/Total',
-        'goal': 'minimize'   
+        'name': 'metric/mAP_0.5_0.95',
+        'goal': 'maximize'   
         },
     'parameters' : {
         'WEIGHT_DECAY': {
@@ -154,8 +155,13 @@ if __name__ == '__main__':
             'min': 0.8,
             'max': 1.0
             },
+        'BIAS': {
+            'values': [True, False]
+            },
         }
     }
     
     sweep_id = wandb.sweep(sweep_config, project='M-FAST', entity=config_origin['WANDB'])
-    wandb.agent(sweep_id, run_sweep, count=100)
+    # wandb.agent(sweep_id, run_sweep, count=100)
+    wandb.agent('h3dc99al', run_sweep, count=1)
+    

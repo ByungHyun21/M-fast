@@ -26,7 +26,7 @@ class ssd_full(nn.Module):
         x = [batch, anchor_n, 4+1+class_n], 4 = [delta_cx, delta_cy, delta_w, delta_h], 1 = background
         self.anchor = [anchor_n, 4], 4 = [cx, cy, w, h]
         """
-        cls = x[:, :, 5:] # exclude background
+        class_pred = x[:, :, 5:] # exclude background
         d_x, d_y, d_w, d_h = torch.split(x[:, :, :4], [1, 1, 1, 1], dim=2)
         a_x, a_y, a_w, a_h = torch.split(self.anchor, [1, 1, 1, 1], dim=1)
         
@@ -45,12 +45,12 @@ class ssd_full(nn.Module):
         y1 = cy - (h / 2.0)
         y2 = cy + (h / 2.0)
         
-        cls = self.activation(cls)
+        class_pred = self.activation(class_pred)
         
-        score, cls = torch.max(cls, dim=2)
+        score, class_pred = torch.max(class_pred, dim=2)
         box = torch.concat([x1, y1, x2, y2], dim=2)
         
-        output = self.nms(cls, score, box, top_k=self.topk, nms_iou_threshold=self.nms_iou_threshold)
+        output = self.nms(class_pred, score, box, top_k=self.topk, nms_iou_threshold=self.nms_iou_threshold)
 
         return output
 

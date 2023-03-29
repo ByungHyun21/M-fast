@@ -33,9 +33,9 @@ def train(rank:int, config:dict):
     ds_valid = get_dataloader(config, 'valid', preprocessor=preprocessor, augmentator=augmentator)
 
     # TODO: 옵티마이저를 네트워크마다 다르게 설정할 필요가 있음, Config 파일에 옵티마이저 설정 추가
-    lr = config['LR'] * config['DDP_WORLD_SIZE'] * config['BATCH_SIZE_MULTI_GPU'] / 64 # batch size 64
-    # optimizer = optim.Adam(model.parameters(), lr=config['LR'], betas=(0.9, 0.999), weight_decay=config['WEIGHT_DECAY'])
-    optimizer = optim.SGD(model.model.parameters(), lr=config['LR'], momentum=0.9, weight_decay=config['WEIGHT_DECAY'])
+    # lr = config['LR'] * config['DDP_WORLD_SIZE'] * config['BATCH_SIZE_MULTI_GPU'] / 64 # batch size 64
+    optimizer = optim.Adam(model.parameters(), lr=config['LR'], betas=(0.9, 0.999), weight_decay=config['WEIGHT_DECAY'])
+    # optimizer = optim.SGD(model.model.parameters(), lr=config['LR'], momentum=0.9, weight_decay=config['WEIGHT_DECAY'])
     
     def custom_scheduler(step):
         if step < config['STEPS'][0]:
@@ -62,11 +62,13 @@ def train(rank:int, config:dict):
         if rank == 0:
             print(f"\n\nModel: {config['MODEL']}, epoch: {epoch}, step: {step}")
             
+        img_train = []
+            
         # # # # #
         # Training
+        model.eval()
         model.model.train()
         manager.reset()
-        
         pbar = tqdm(ds_train, desc='Training', ncols=0) if rank == 0 else ds_train
         for img, gt in pbar:
             step += 1
@@ -81,6 +83,9 @@ def train(rank:int, config:dict):
             manager.accumulate_loss(loss)
             if rank == 0:
                 pbar.set_postfix_str(manager.loss_print() + f"lr: {scheduler.get_last_lr()[0]:.6f}")
+
+            if len(img_train) == 0:
+                img_train = img[:8]
                 
             dist.barrier()
             
@@ -89,6 +94,7 @@ def train(rank:int, config:dict):
 
         # # # # #
         # Validation
+        model.eval()
         model.model.eval()
         manager.reset()
         pbar = tqdm(ds_valid, desc='Validation', ncols=0) if rank == 0 else ds_valid
@@ -110,10 +116,13 @@ def train(rank:int, config:dict):
         if ('Object Detection' in config['TASK']) and (epoch % 10 == 0) and (epoch != 0):
             manager.wandb_report_object_detection(epoch, model)
             
-        if rank == 0:    
-            if 'mAP' in config['METRIC']:
-                metric_mAP.reset()
-                mAPs = metric_mAP(model)
+            manager.wandb_report_object_detection_training(epoch, model, img_train)
+            
+        
+        if 'mAP' in config['METRIC']:
+            metric_mAP.reset()
+            mAPs = metric_mAP(rank, model)
+            if rank == 0:
                 manager.wandb_report(epoch, mAPs)
                 metric_mAP.print()
             
@@ -132,28 +141,28 @@ def train(rank:int, config:dict):
             target = yaml.load(f, Loader=yaml.SafeLoader)
         metric_mAP.set(target['DATASET'], target['CATEGORY'], target['CLASS'], model.model_class)
         metric_mAP.reset()
-        mAPs = metric_mAP(model)
+        mAPs = metric_mAP(rank, model)
         metric_mAP.print()
     
         with open('model/config/dataset/voc.yaml') as f:
             target = yaml.load(f, Loader=yaml.SafeLoader)
         metric_mAP.set(target['DATASET'], target['CATEGORY'], target['CLASS'], model.model_class)
         metric_mAP.reset()
-        mAPs = metric_mAP(model)
+        mAPs = metric_mAP(rank, model)
         metric_mAP.print()
     
         with open('model/config/dataset/crowdhuman.yaml') as f:
             target = yaml.load(f, Loader=yaml.SafeLoader)
         metric_mAP.set(target['DATASET'], target['CATEGORY'], target['CLASS'], model.model_class)
         metric_mAP.reset()
-        mAPs = metric_mAP(model)
+        mAPs = metric_mAP(rank, model)
         metric_mAP.print()
     
         with open('model/config/dataset/argoseye.yaml') as f:
             target = yaml.load(f, Loader=yaml.SafeLoader)
         metric_mAP.set(target['DATASET'], target['CATEGORY'], target['CLASS'], model.model_class)
         metric_mAP.reset()
-        mAPs = metric_mAP(model)
+        mAPs = metric_mAP(rank, model)
         metric_mAP.print()
         
         

@@ -42,7 +42,6 @@ class mAP(object):
         
         self.data = [item for keep, item in zip(valid, data) if keep] 
         
-        
         #mAP Calculation
         # mAP 0.5:0.05:0.95
         # mAP 0.5
@@ -73,10 +72,11 @@ class mAP(object):
         
         self.mAP = {}
         
-    def __call__(self, model):
+    def __call__(self, rank, model):
         model.eval()
+        model.model.eval()
         
-        pbar = tqdm(self.data, desc=self.dataset + ' : calculation TP/FP Table', ncols=0)
+        pbar = tqdm(self.data, desc=self.dataset + ' : calculation TP/FP Table', ncols=0) if rank == 0 else self.data
         for d in pbar: 
             # mAP caclulation one by one
             img, label, box = self.read_data(d)
@@ -87,7 +87,7 @@ class mAP(object):
             for calculator in self.calculators:
                 calculator.get_data(pred, label, box)
         
-        pbar = tqdm(self.calculators, desc=self.dataset + ' : calculation mAP', ncols=0)
+        pbar = tqdm(self.calculators, desc=self.dataset + ' : calculation mAP', ncols=0) if rank == 0 else self.calculators
         for calculator in pbar:
             calculator.calc_mAP()
         
@@ -381,5 +381,6 @@ class mAP_calculator(object):
                 
         if count != 0:
             self.mAP_mean /= count
+            self.mAP_mean *= 100.0
         else:
             self.mAP_mean = 0.0

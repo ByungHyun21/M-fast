@@ -7,6 +7,7 @@ class augmentator(object):
         self.transform_train = [
             augment_hsv(p=1.0),
             # random_perspective(p=1.0),
+            RandomVFlip(p=0.5),
             Resize(input_size),
             ]
 

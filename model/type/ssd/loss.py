@@ -14,8 +14,8 @@ class loss(nn.Module):
     def forward(self, pred, gt):
         # pred : batch*anchors*(4+1+class)
         # gt : batch*anchors*(4+1+class)
-        cls = pred[:, :, 4:]
-        loc = pred[:, :, :4]
+        cls_pred = pred[:, :, 4:]
+        loc_pred = pred[:, :, :4]
         
         cls_gt = gt[:, :, 4:]
         loc_gt = gt[:, :, :4]
@@ -28,9 +28,8 @@ class loss(nn.Module):
         # Cross Entropy
         # cls_softmax = self.softmax(cls)
         # entropy = torch.sum(cls_gt * -torch.log(torch.clip(cls_softmax, 1e-7, 1.0 - 1e-7)), axis=2)
-        cls_sigmoid = self.sigmoid(cls)
-        entropy = torch.mean(cls_gt * -torch.log(torch.clip(cls_sigmoid, 1e-7, 1.0 - 1e-7)), axis=2) + \
-            torch.mean((1 - cls_gt) * -torch.log(torch.clip(1 - cls_sigmoid, 1e-7, 1.0 - 1e-7)), axis=2)
+        cls_sigmoid = self.sigmoid(cls_pred)
+        entropy = torch.mean(cls_gt * -torch.log(torch.clip(cls_sigmoid, 1e-7, 1.0 - 1e-7)) + (1 - cls_gt) * -torch.log(torch.clip(1 - cls_sigmoid, 1e-7, 1.0 - 1e-7)), axis=2)
         
         # # # # #
         # Hard Negative Mining
@@ -53,7 +52,7 @@ class loss(nn.Module):
         
         # # # # #
         # Regression Loss
-        huber_loss = self.SmoothL1Loss(loc, loc_gt)
+        huber_loss = self.SmoothL1Loss(loc_pred, loc_gt)
         huber_loss = torch.mean(huber_loss, dim=2)
         
         loss_loc = self.alpha * torch.sum(pos * huber_loss, dim=1)

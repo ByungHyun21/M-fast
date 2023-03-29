@@ -75,12 +75,12 @@ class ssd_mobilenet_v2(nn.Module):
             Conv2d(64, 128, k=1, bias=bias, act='relu6'),   # 1x1x64 -> 1x1x128
         )
         
-        self.head_1 = Conv2d(576, anchor_n[0]*self.nc, bn=False, bias=bias, act=None)   # 19x19x576 -> 19x19x(anchors*nc)
-        self.head_2 = Conv2d(1280, anchor_n[1]*self.nc, bn=False, bias=bias, act=None)   # 10x10x160 -> 10x10x(anchors*nc)
-        self.head_3 = Conv2d(512, anchor_n[2]*self.nc, bn=False, bias=bias, act=None)   # 5x5x256 -> 5x5x(anchors*nc)
-        self.head_4 = Conv2d(256, anchor_n[3]*self.nc, bn=False, bias=bias, act=None)   # 3x3x256 -> 3x3x(anchors*nc)
-        self.head_5 = Conv2d(256, anchor_n[4]*self.nc, bn=False, bias=bias, act=None)   # 2x2x256 -> 2x2x(anchors*nc)
-        self.head_6 = Conv2d(128, anchor_n[5]*self.nc, bn=False, bias=bias, act=None)   # 1x1x128 -> 1x1x(anchors*nc)
+        self.head_1 = Conv2d(576, anchor_n[0]*self.nc, bn=False, bias=False, act=None)   # 19x19x576 -> 19x19x(anchors*nc)
+        self.head_2 = Conv2d(1280, anchor_n[1]*self.nc, bn=False, bias=False, act=None)   # 10x10x160 -> 10x10x(anchors*nc)
+        self.head_3 = Conv2d(512, anchor_n[2]*self.nc, bn=False, bias=False, act=None)   # 5x5x256 -> 5x5x(anchors*nc)
+        self.head_4 = Conv2d(256, anchor_n[3]*self.nc, bn=False, bias=False, act=None)   # 3x3x256 -> 3x3x(anchors*nc)
+        self.head_5 = Conv2d(256, anchor_n[4]*self.nc, bn=False, bias=False, act=None)   # 2x2x256 -> 2x2x(anchors*nc)
+        self.head_6 = Conv2d(128, anchor_n[5]*self.nc, bn=False, bias=False, act=None)   # 1x1x128 -> 1x1x(anchors*nc)
             
 
         self.backbone.apply(weights_init)
@@ -90,6 +90,12 @@ class ssd_mobilenet_v2(nn.Module):
         self.extra_4.apply(weights_init)
         self.extra_5.apply(weights_init)
         self.extra_6.apply(weights_init)
+        self.head_1.apply(weights_init)
+        self.head_2.apply(weights_init)
+        self.head_3.apply(weights_init)
+        self.head_4.apply(weights_init)
+        self.head_5.apply(weights_init)
+        self.head_6.apply(weights_init)
 
     def forward(self, x):
         x = (x / 128.0) - 1.0

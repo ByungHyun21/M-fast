@@ -14,7 +14,7 @@ WORKERS: 1 # workers per gpu
 
 #HyperParameter
 ### Network
-BIAS: True
+BIAS: False
 MEAN: [0.485, 0.456, 0.406]
 STD: [0.229, 0.224, 0.225]
 
@@ -24,14 +24,14 @@ NMS_IOU_THRESHOLD: 0.5
 
 ### Training
 STEPS: [300000, 350000, 400000]
-LR: 0.001
+LR: 0.0001
 BATCH_SIZE_SINGLE_GPU: 16
 BATCH_SIZE_MULTI_GPU: 32 # BATCH_SIZE_MULTI_GPU will divide by GPU_NUM
-WEIGHT_DECAY: 0.00005
+WEIGHT_DECAY: 0
 MOMENTUM: 0.9
 
 ### loss
-LOSS_ALPHA: 1.0
+LOSS_ALPHA: 0.1
 
 ### Anchor
 ANCHOR_N: [6, 6, 6, 6, 6, 6]
