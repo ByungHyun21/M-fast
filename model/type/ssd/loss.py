@@ -29,7 +29,7 @@ class loss(nn.Module):
         # cls_softmax = self.softmax(cls)
         # entropy = torch.sum(cls_gt * -torch.log(torch.clip(cls_softmax, 1e-7, 1.0 - 1e-7)), axis=2)
         cls_sigmoid = self.sigmoid(cls_pred)
-        entropy = torch.mean(cls_gt * -torch.log(torch.clip(cls_sigmoid, 1e-7, 1.0 - 1e-7)) + (1 - cls_gt) * -torch.log(torch.clip(1 - cls_sigmoid, 1e-7, 1.0 - 1e-7)), axis=2)
+        entropy = torch.sum(cls_gt * -torch.log(torch.clip(cls_sigmoid, 1e-7, 1.0 - 1e-7)) + (1 - cls_gt) * -torch.log(torch.clip(1 - cls_sigmoid, 1e-7, 1.0 - 1e-7)), axis=2)
         
         # # # # #
         # Hard Negative Mining

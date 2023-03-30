@@ -10,6 +10,10 @@ Mono AI
 - Pretrained 여부에 따른 학습 파이프라인 지원(Pretrained, Not Pretrained, MOCO)
 - Dataset Merge에 따른 학습 파이프라인 지원(COCO+VOC)
     * utils/load_config에서 현재 단일 데이터셋만 지원
+- 효율적인 학습 파이프라인 지원
+    * 현재는 모든 데이터셋을 메모리에 올려놓고 학습
+    * 데이터셋을 메모리에 올리지 않고 학습
+- 효율적인 mAP 계산 지원
 
 ## :one: 사용법
 
