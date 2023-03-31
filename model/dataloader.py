@@ -79,7 +79,7 @@ class dataset(Dataset):
             
         gt = self.preprocessor(labels, boxes)
 
-        return torch.from_numpy(img).permute(2, 0, 1).float(), torch.from_numpy(gt).float()
+        return torch.from_numpy(img).permute(2, 0, 1).float().contiguous(), torch.from_numpy(gt).float().contiguous()
     
     def read_data(self, idx):
         tree = ET().parse(self.data[idx]['label'])

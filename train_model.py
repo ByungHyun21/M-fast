@@ -33,14 +33,15 @@ def train(rank:int, config:dict):
     ds_valid = get_dataloader(config, 'valid', preprocessor=preprocessor, augmentator=augmentator)
 
     # TODO: 옵티마이저를 네트워크마다 다르게 설정할 필요가 있음, Config 파일에 옵티마이저 설정 추가
-    # lr = config['LR'] * config['DDP_WORLD_SIZE'] * config['BATCH_SIZE_MULTI_GPU'] / 64 # batch size 64
-    optimizer = optim.Adam(model.parameters(), lr=config['LR'], betas=(0.9, 0.999), weight_decay=config['WEIGHT_DECAY'])
-    # optimizer = optim.SGD(model.model.parameters(), lr=config['LR'], momentum=0.9, weight_decay=config['WEIGHT_DECAY'])
+    lr0 = config['LR'] * config['BATCH_SIZE_MULTI_GPU'] / 32 # batch size 64
+    # optimizer = optim.Adam(model.parameters(), lr=lr0, betas=(0.9, 0.999), weight_decay=config['WEIGHT_DECAY'])
+    optimizer = optim.SGD(model.model.parameters(), lr=lr0, momentum=0.9, weight_decay=config['WEIGHT_DECAY'])
+    optimizer.zero_grad()
     
-    def custom_scheduler(step):
-        if step < config['STEPS'][0]:
+    def custom_scheduler(epoch):
+        if epoch < config['STEPLR'][0]:
             lr = 1 # learning_rate = lr0 * lr
-        elif step < config['STEPS'][1]:
+        elif epoch < config['STEPLR'][1]:
             lr = 0.1
         else:
             lr = 0.01
@@ -53,14 +54,13 @@ def train(rank:int, config:dict):
         metric_mAP = mAP(config)
         metric_mAP.set(config['DATASET'], config['CATEGORY'], config['CLASS'], model.model_class)
     
-    step = 0
     epoch = -1
     best_loss = float('inf')
     manager = report_manager(config, rank)
     while True:
         epoch += 1
         if rank == 0:
-            print(f"\n\nModel: {config['MODEL']}, epoch: {epoch}, step: {step}")
+            print(f"\n\nModel: {config['MODEL']}, epoch: {epoch}")
             
         img_train = []
             
@@ -71,14 +71,11 @@ def train(rank:int, config:dict):
         manager.reset()
         pbar = tqdm(ds_train, desc='Training', ncols=0) if rank == 0 else ds_train
         for img, gt in pbar:
-            step += 1
-            
-            optimizer.zero_grad()
-            pred = model.model(img.to(config['DEVICE']))
-            loss = loss_func(pred, gt.to(config['DEVICE']))
+            pred = model.model(img.to(config['DEVICE']).contiguous())
+            loss = loss_func(pred, gt.to(config['DEVICE']).contiguous())
             loss[0].backward() # loss[0] = total loss
             optimizer.step()
-            scheduler.step()
+            optimizer.zero_grad()
             
             manager.accumulate_loss(loss)
             if rank == 0:
@@ -99,8 +96,8 @@ def train(rank:int, config:dict):
         manager.reset()
         pbar = tqdm(ds_valid, desc='Validation', ncols=0) if rank == 0 else ds_valid
         for img, gt in pbar:
-            pred = model.model(img.to(config['DEVICE']))
-            loss = loss_func(pred, gt.to(config['DEVICE']))
+            pred = model.model(img.to(config['DEVICE']).contiguous())
+            loss = loss_func(pred, gt.to(config['DEVICE']).contiguous())
             
             manager.accumulate_loss(loss)
             if rank == 0:
@@ -118,25 +115,27 @@ def train(rank:int, config:dict):
             
             manager.wandb_report_object_detection_training(epoch, model, img_train)
             
-        
-        if 'mAP' in config['METRIC']:
-            metric_mAP.reset()
-            mAPs = metric_mAP(rank, model)
-            if rank == 0:
-                manager.wandb_report(epoch, mAPs)
-                metric_mAP.print()
+        if epoch % 5 == 0:
+            if 'mAP' in config['METRIC']:
+                metric_mAP.reset()
+                mAPs = metric_mAP(rank, model)
+                if rank == 0:
+                    manager.wandb_report(epoch, mAPs)
+                    metric_mAP.print()
             
             # # # # #
             # Save
         
         dist.barrier()
         
-        if step >= config['STEPS'][-1]:
+        
+        scheduler.step()
+        if epoch >= config['STEPLR'][-1]:
             break
         
     dist.destroy_process_group()
         
-    if ('mAP' in config['METRIC']) and (rank == 0):
+    if 'mAP' in config['METRIC']:
         with open('model/config/dataset/coco.yaml') as f:
             target = yaml.load(f, Loader=yaml.SafeLoader)
         metric_mAP.set(target['DATASET'], target['CATEGORY'], target['CLASS'], model.model_class)
@@ -144,12 +143,12 @@ def train(rank:int, config:dict):
         mAPs = metric_mAP(rank, model)
         metric_mAP.print()
     
-        with open('model/config/dataset/voc.yaml') as f:
-            target = yaml.load(f, Loader=yaml.SafeLoader)
-        metric_mAP.set(target['DATASET'], target['CATEGORY'], target['CLASS'], model.model_class)
-        metric_mAP.reset()
-        mAPs = metric_mAP(rank, model)
-        metric_mAP.print()
+        # with open('model/config/dataset/voc.yaml') as f:
+        #     target = yaml.load(f, Loader=yaml.SafeLoader)
+        # metric_mAP.set(target['DATASET'], target['CATEGORY'], target['CLASS'], model.model_class)
+        # metric_mAP.reset()
+        # mAPs = metric_mAP(rank, model)
+        # metric_mAP.print()
     
         with open('model/config/dataset/crowdhuman.yaml') as f:
             target = yaml.load(f, Loader=yaml.SafeLoader)
@@ -170,7 +169,7 @@ def train(rank:int, config:dict):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', type=str, default='model/config/ssd/ssd_mobilenet_v2.yaml')
+    parser.add_argument('--config', type=str, default='model/config/ssd/test.yaml')
     parser.add_argument('--coco', action='store_true')
     parser.add_argument('--voc', action='store_true')
     parser.add_argument('--crowdhuman', action='store_true')
@@ -179,8 +178,8 @@ if __name__ == '__main__':
     opt = parser.parse_args()
 
     #TODO: 테스트용
-    # opt.coco = True
-    # opt.wandb = 'byunghyun'
+    opt.coco = True
+    opt.wandb = None
 
     config = configuration(opt)
     

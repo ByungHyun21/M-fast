@@ -4,17 +4,17 @@ import torch.nn.init as init
 
 def xavier(param):
     init.xavier_uniform_(param)
+    
+def uniform_init(param):
+    init.uniform_(param, a=-0.1, b=0.1)
 
 def weights_init(module):
-    # # # # #
-    # Conv2D
     if isinstance(module, nn.Conv2d):
         xavier(module.weight.data) 
         if module.bias is not None:
+            # uniform_init(module.bias.data)
             module.bias.data.zero_()
 
-    # # # # #
-    # Linear
     if isinstance(module, nn.Linear):
         module.weight.data.normal_(mean=0.0, std=1.0)
         if module.bias is not None:
@@ -68,7 +68,7 @@ class Conv2d(nn.Module):
         x = self.conv2d(x)
         
         if self.bn is not None:
-            x = self.bn(x)
+            x = self.bn(x.contiguous())
 
         if self.act is not None:
             x = self.act(x)
@@ -112,7 +112,7 @@ class GroupConv2d(nn.Module):
         x = self.depth2d(x)
         
         if self.bn is not None:
-            x = self.bn(x)
+            x = self.bn(x.contiguous())
 
         if self.act is not None:
             x = self.act(x)
@@ -126,7 +126,7 @@ class MobileNet_V2_Conv2d(nn.Module):
     s : stride
     bias : bias
     """
-    def __init__(self, cin:int, cout:int, s:int=1, bn:bool=True, bias:bool=False):
+    def __init__(self, cin:int, cout:int, s:int=1, bn:bool=True, bias:bool=True):
         super().__init__()
         self.residual = False
         if cin == cout and s == 1:

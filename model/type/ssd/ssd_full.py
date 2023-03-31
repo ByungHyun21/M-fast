@@ -10,7 +10,8 @@ class ssd_full(nn.Module):
 
         self.model = model
         self.anchor = torch.from_numpy(anchor).float().to('cpu').to(config['DEVICE'])
-        self.activation = nn.Sigmoid()
+        # self.activation = nn.Sigmoid()
+        self.activation = nn.Softmax(dim=2)
         
         self.topk = config['TOPK']
         self.nms_iou_threshold = config['NMS_IOU_THRESHOLD']
@@ -26,7 +27,7 @@ class ssd_full(nn.Module):
         x = [batch, anchor_n, 4+1+class_n], 4 = [delta_cx, delta_cy, delta_w, delta_h], 1 = background
         self.anchor = [anchor_n, 4], 4 = [cx, cy, w, h]
         """
-        class_pred = x[:, :, 5:] # exclude background
+        class_pred = x[:, :, 4:]
         d_x, d_y, d_w, d_h = torch.split(x[:, :, :4], [1, 1, 1, 1], dim=2)
         a_x, a_y, a_w, a_h = torch.split(self.anchor, [1, 1, 1, 1], dim=1)
         
@@ -47,8 +48,8 @@ class ssd_full(nn.Module):
         
         class_pred = self.activation(class_pred)
         
-        score, class_pred = torch.max(class_pred, dim=2)
-        box = torch.concat([x1, y1, x2, y2], dim=2)
+        score, class_pred = torch.max(class_pred[:, :, 1:], dim=2) # remove background
+        box = torch.concat([x1, y1, x2, y2], dim=2).contiguous()
         
         output = self.nms(class_pred, score, box, top_k=self.topk, nms_iou_threshold=self.nms_iou_threshold)
 
@@ -62,7 +63,7 @@ class ssd_full(nn.Module):
             c = torch.unsqueeze(cls[i], 1)
             s = torch.unsqueeze(score[i], 1)
             b = box[i]
-            detections = torch.concat([c, s, b], dim=1)
+            detections = torch.concat([c, s, b], dim=1).contiguous()
             
             _, sort_index = torch.sort(s, dim=0, descending=True)
             
@@ -141,7 +142,7 @@ class ssd_full(nn.Module):
         
         cls = self.activation(cls)
 
-        return torch.concat([cls, x1, y1, x2, y2], dim=1)
+        return torch.concat([cls, x1, y1, x2, y2], dim=1).contiguous()
     
     
     

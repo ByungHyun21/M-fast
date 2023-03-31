@@ -1,7 +1,5 @@
 import os, platform
 import yaml
-import inspect
-from termcolor import colored
 
 import torch
 
