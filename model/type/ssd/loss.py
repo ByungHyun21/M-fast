@@ -10,7 +10,7 @@ class loss(nn.Module):
         self.SmoothL1Loss = nn.L1Loss(reduction='none')
         self.softmax = nn.Softmax(dim=2)
         self.sigmoid = nn.Sigmoid()
-        self.cross_entropy = nn.CrossEntropyLoss(reduce=False, reduction='none')
+        # self.cross_entropy = nn.CrossEntropyLoss(reduce=False, reduction='none')
         
     def forward(self, pred, gt):
         # pred : batch*anchors*(4+1+class)

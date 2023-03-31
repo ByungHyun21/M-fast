@@ -7,10 +7,12 @@ import torch.optim as optim
 import torch.distributed as dist
 import torch.multiprocessing as mp
 from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.utils.data.distributed import DistributedSampler
+from torch.utils.data import DataLoader
 
 from tqdm import tqdm
 from model.network import network
-from model.dataloader import get_dataloader
+from model.dataloader import dataset
 from model.metric import mAP
 from model.utils import *
 from model.report_manager import report_manager
@@ -29,8 +31,29 @@ def train(rank:int, config:dict):
     model.model = DDP(model.model.to(config['DEVICE']), device_ids=[rank], output_device=rank)
     model.to(config['DEVICE'])
 
-    ds_train = get_dataloader(config, 'train', preprocessor=preprocessor, augmentator=augmentator)
-    ds_valid = get_dataloader(config, 'valid', preprocessor=preprocessor, augmentator=augmentator)
+    # DataLoader
+    batch_size = config['BATCH_SIZE_MULTI_GPU'] // config['DDP_WORLD_SIZE']
+    config.update({'BATCH_SIZE':batch_size})
+    
+    dataset_train = dataset(config, 'train', preprocessor=preprocessor, augmentator=augmentator)
+    dataset_valid = dataset(config, 'valid', preprocessor=preprocessor, augmentator=augmentator)
+    
+    sampler = DistributedSampler(dataset_train) if config['DDP_WORLD_SIZE'] > 1 else None
+    ds_train = DataLoader(dataset_train, 
+                      batch_size=batch_size,
+                      shuffle=True if sampler is None else False, 
+                      num_workers=config['WORKERS'], 
+                      pin_memory=True, 
+                      drop_last=False, 
+                      sampler=sampler) # Sampler will shuffle dataset
+
+    ds_valid = DataLoader(dataset_valid, 
+                      batch_size=batch_size,
+                      shuffle=False, 
+                      num_workers=config['WORKERS'], 
+                      pin_memory=True, 
+                      drop_last=False, 
+                      sampler=None)
 
     # TODO: 옵티마이저를 네트워크마다 다르게 설정할 필요가 있음, Config 파일에 옵티마이저 설정 추가
     lr0 = config['LR'] * config['BATCH_SIZE_MULTI_GPU'] / 32 # batch size 64
@@ -69,6 +92,8 @@ def train(rank:int, config:dict):
         model.eval()
         model.model.train()
         manager.reset()
+        if sampler is not None:
+            sampler.set_epoch(epoch)
         pbar = tqdm(ds_train, desc='Training', ncols=0) if rank == 0 else ds_train
         for img, gt in pbar:
             pred = model.model(img.to(config['DEVICE']).contiguous())
@@ -179,7 +204,7 @@ if __name__ == '__main__':
 
     #TODO: 테스트용
     opt.coco = True
-    opt.wandb = None
+    opt.wandb = 'byunghyun'
 
     config = configuration(opt)
     

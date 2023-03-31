@@ -8,25 +8,7 @@ from pathlib import Path
 import numpy as np
 
 import torch
-from torch.utils.data import Dataset, DataLoader
-from torch.utils.data.distributed import DistributedSampler
-
-def get_dataloader(config, purpose, preprocessor=None, augmentator=None):
-    assert purpose in ['train', 'valid'], 'purpose must be train or valid'
-    assert preprocessor is not None, 'preprocessor is None'
-    assert augmentator is not None, 'augmentator is None'
-    
-    batch_size = config['BATCH_SIZE_MULTI_GPU'] // config['DDP_WORLD_SIZE']
-    config.update({'BATCH_SIZE':batch_size})
-    
-    custom_dataset = dataset(config, purpose, preprocessor=preprocessor, augmentator=augmentator)
-    return DataLoader(custom_dataset, 
-                      batch_size=batch_size,
-                      shuffle=True if config['DDP_WORLD_SIZE'] == 1 else False, 
-                      num_workers=config['WORKERS'], 
-                      pin_memory=True, 
-                      drop_last=True, 
-                      sampler=DistributedSampler(custom_dataset) if config['DDP_WORLD_SIZE'] > 1 else None)
+from torch.utils.data import Dataset
 
 class dataset(Dataset):
     def __init__(self, config, purpose, preprocessor=None, augmentator=None):
