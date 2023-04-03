@@ -138,7 +138,7 @@ def train(rank:int, config:dict):
 
         # report inference result to wandb
         manager.wandb_report(step, {'lr': scheduler.get_last_lr()[0]})
-        if ('Object Detection' in config['TASK']) and (epoch % 10 == 0) and (step != 0):
+        if ('Object Detection' in config['TASK']) and (epoch % 10 == 0) and (epoch != 0):
             manager.wandb_report_object_detection(step, model)
             
             manager.wandb_report_object_detection_training(step, model, img_train)
