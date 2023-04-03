@@ -4,15 +4,11 @@
 Mono AI 
 
 ## :small_blue_diamond: TODO 
-- One-node, Multi-GPU 지원
 - Multi-node, Multi-GPU 지원
 - Target에 따른 학습 파이프라인 지원(acacia, belladonna, etc.)
 - Pretrained 여부에 따른 학습 파이프라인 지원(Pretrained, Not Pretrained, MOCO)
 - Dataset Merge에 따른 학습 파이프라인 지원(COCO+VOC)
     * utils/load_config에서 현재 단일 데이터셋만 지원
-- 효율적인 학습 파이프라인 지원
-    * 현재는 모든 데이터셋을 메모리에 올려놓고 학습
-    * 데이터셋을 메모리에 올리지 않고 학습
 - 효율적인 mAP 계산 지원
 
 ## :one: 사용법
@@ -110,9 +106,9 @@ python train_model.py --config {config 경로} --coco
 
 ### :small_blue_diamond: 성능
 * 일반적으로 mAP는 다음과 같이 적용된다.
- - AP<sup>small</sup> : 32x32 이하의 작은 객체
- - AP<sup>medium</sup>: 32x32 이상, 96x96 이하의 객체
- - AP<sup>large</sup> : 96x96 이상의 큰 객체
+ - AP<sup>small</sup> : 32x32 이하의 작은 객체, IOU 0.5:0.95
+ - AP<sup>medium</sup>: 32x32 이상, 96x96 이하의 객체, IOU 0.5:0.95
+ - AP<sup>large</sup> : 96x96 이상의 큰 객체, IOU 0.5:0.95
 * 이미지 입력 크기가 다양한 상황에서 위 평가지표는 적절하지 않으므로, 다음과 같이 적용된다.
  - AP<sup>small</sup> : bounding box의 넓이가 (1/6)<sup>2</sup> 이하인 객체
  - AP<sup>medium</sup>: bounding box의 넓이가 (1/6)<sup>2</sup> 이상, (1/3)<sup>2</sup> 이하인 객체

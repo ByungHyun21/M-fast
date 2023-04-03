@@ -45,7 +45,7 @@ def train(rank:int, config:dict):
                       num_workers=config['WORKERS'], 
                       pin_memory=True, 
                       drop_last=False, 
-                      sampler=sampler) # Sampler will shuffle dataset
+                      sampler=sampler) # Sampler will shuffle dataset in DDP Training
 
     ds_valid = DataLoader(dataset_valid, 
                       batch_size=batch_size,
@@ -61,10 +61,10 @@ def train(rank:int, config:dict):
     optimizer = optim.SGD(model.model.parameters(), lr=lr0, momentum=0.9, weight_decay=config['WEIGHT_DECAY'])
     optimizer.zero_grad()
     
-    def custom_scheduler(epoch):
-        if epoch < config['STEPLR'][0]:
+    def custom_scheduler(step):
+        if step < config['STEPLR'][0]:
             lr = 1 # learning_rate = lr0 * lr
-        elif epoch < config['STEPLR'][1]:
+        elif step < config['STEPLR'][1]:
             lr = 0.1
         else:
             lr = 0.01
@@ -78,6 +78,7 @@ def train(rank:int, config:dict):
         metric_mAP.set(config['DATASET'], config['CATEGORY'], config['CLASS'], model.model_class)
     
     epoch = -1
+    step = 0
     best_loss = float('inf')
     manager = report_manager(config, rank)
     while True:
@@ -102,6 +103,8 @@ def train(rank:int, config:dict):
             optimizer.step()
             optimizer.zero_grad()
             
+            scheduler.step()
+            step += 1
             manager.accumulate_loss(loss)
             if rank == 0:
                 pbar.set_postfix_str(manager.loss_print() + f"lr: {scheduler.get_last_lr()[0]:.6f}")
@@ -112,7 +115,7 @@ def train(rank:int, config:dict):
             dist.barrier()
             
         dict_train = manager.get_loss_dict('train/')
-        manager.wandb_report(epoch, dict_train)
+        manager.wandb_report(step, dict_train)
 
         # # # # #
         # Validation
@@ -131,21 +134,21 @@ def train(rank:int, config:dict):
             dist.barrier()
 
         dict_valid = manager.get_loss_dict('valid/')
-        manager.wandb_report(epoch, dict_valid)
+        manager.wandb_report(step, dict_valid)
 
         # report inference result to wandb
-        manager.wandb_report(epoch, {'lr': scheduler.get_last_lr()[0]})
-        if ('Object Detection' in config['TASK']) and (epoch % 10 == 0) and (epoch != 0):
-            manager.wandb_report_object_detection(epoch, model)
+        manager.wandb_report(step, {'lr': scheduler.get_last_lr()[0]})
+        if ('Object Detection' in config['TASK']) and (epoch % 10 == 0) and (step != 0):
+            manager.wandb_report_object_detection(step, model)
             
-            manager.wandb_report_object_detection_training(epoch, model, img_train)
+            manager.wandb_report_object_detection_training(step, model, img_train)
             
         if epoch % 5 == 0:
             if 'mAP' in config['METRIC']:
                 metric_mAP.reset()
                 mAPs = metric_mAP(rank, model)
                 if rank == 0:
-                    manager.wandb_report(epoch, mAPs)
+                    manager.wandb_report(step, mAPs)
                     metric_mAP.print()
             
             # # # # #
@@ -153,9 +156,7 @@ def train(rank:int, config:dict):
         
         dist.barrier()
         
-        
-        scheduler.step()
-        if epoch >= config['STEPLR'][-1]:
+        if step >= config['STEPLR'][-1]:
             break
         
     dist.destroy_process_group()
