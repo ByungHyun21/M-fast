@@ -40,17 +40,6 @@ class ssd_vgg16(nn.Module):
             Conv2d(256, 256, act='relu'),        # 75x75x256 -> 75x75x256
             MaxPool2d(k=2, s=2, p=0),            # 75x75x256 -> 38x38x256
         )
-
-        # if config['BACKBONE_WEIGHT']:
-        #     state_dict = self.state_dict()
-        #     param_names = list(state_dict.keys())
-
-        #     pretrained_state_dict = torchvision.models.vgg16(pretrained=True).state_dict()
-        #     pretrained_param_names = list(pretrained_state_dict.keys())
-
-        #     for i, param in enumerate(param_names):
-        #         state_dict[param] = pretrained_state_dict[pretrained_param_names[i]]
-        #     self.load_state_dict(state_dict)
         
         self.extra_1 = nn.Sequential(
             Conv2d(256, 512, act='relu'),        # 38x38x256 -> 38x38x512
@@ -93,19 +82,11 @@ class ssd_vgg16(nn.Module):
         self.rescale_factor = nn.Parameter(torch.FloatTensor(1, 512, 1, 1), requires_grad=True)
         nn.init.constant_(self.rescale_factor, 20)
 
-        self.backbone.apply(weights_init)
-        self.extra_1.apply(weights_init)
-        self.extra_2.apply(weights_init)
-        self.extra_3.apply(weights_init)
-        self.extra_4.apply(weights_init)
-        self.extra_5.apply(weights_init)
-        self.extra_6.apply(weights_init)
-        self.head_1.apply(weights_init)
-        self.head_2.apply(weights_init)
-        self.head_3.apply(weights_init)
-        self.head_4.apply(weights_init)
-        self.head_5.apply(weights_init)
-        self.head_6.apply(weights_init)
+        self.backbone_weight = config['BACKBONE_WEIGHT']
+        self.pretrained_weight = config['PRETRAINED_WEIGHT']
+
+        self.load_torchvision_weights()
+        self.load_pretrained_weights()
 
     def forward(self, x):
         x = (x / 128.0) - 1.0
@@ -147,7 +128,27 @@ class ssd_vgg16(nn.Module):
         x = x.reshape(x.shape[0], -1, self.nc)
         return x
     
+    def load_torchvision_weights(self):
+        if self.backbone_weight == 'torchvision':
+            state_dict = self.state_dict()
+            param_names = list(state_dict.keys())
+
+            pretrained_dict = torchvision.models.vgg16_bn(pretrained=True).state_dict()
+            pretrained_names = list(pretrained_dict.keys())
+
+            for i, name in enumerate(param_names[1:]): # exclude [0] = rescale_factor
+                if 'backbone' in name or 'extra_1' in name:
+                    # print(name, '<', pretrained_names[i])
+                    state_dict[name] = pretrained_dict[pretrained_names[i]]
+
+                    if pretrained_names[i][-5:] != name[-5:] or \
+                        pretrained_dict[pretrained_names[i]].shape != state_dict[name].shape:
+                        # print(state_dict[name].shape)
+                        # print(pretrained_dict[pretrained_names[i]].shape)
+                        assert False, 'Pretrained model과 our model의 shape이 일치하지 않음'
+                
+                    
+            self.load_state_dict(state_dict)
     
-
-
-
+    def load_pretrained_weights(self):
+        pass

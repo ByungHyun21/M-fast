@@ -196,7 +196,7 @@ def train(rank:int, config:dict):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', type=str, default='model/config/ssd/ssd_vgg16_voc.yaml')
+    parser.add_argument('--config', type=str, default='model/config/ssd/vgg16_voc.yaml')
     parser.add_argument('--coco', action='store_true')
     parser.add_argument('--voc', action='store_true')
     parser.add_argument('--crowdhuman', action='store_true')
@@ -207,9 +207,12 @@ if __name__ == '__main__':
 
     #TODO: 테스트용
     opt.voc = True
-    opt.wandb = 'byunghyun'
+    # opt.wandb = 'byunghyun'
     # opt.dataset_path = 'C:\dataset'
+    opt.dataset_path = 'C:\\Users\\dqg06\\Desktop'
     
+    assert opt.config is not None, 'config is not defined'
+    assert opt.coco or opt.voc or opt.crowdhuman or opt.argoseye, 'dataset is not defined'
     assert opt.dataset_path is not None, 'dataset path is not defined'
 
     config = configuration(opt)

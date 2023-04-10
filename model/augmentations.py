@@ -516,9 +516,9 @@ class mosaic(object):
         # canvas에 이미지 붙이기
         random_range = self.canvas_range
         offset_width = 0.5 * width
-        offset_width = offset_width + ((random.random() - 0.5) * offset_width * random_range)
+        offset_width = offset_width + ((2*random.random() - 1.0) * offset_width * random_range)
         offset_height = 0.5 * height
-        offset_height = offset_height + ((random.random() - 0.5) * offset_height * random_range)
+        offset_height = offset_height + ((2*random.random() - 1.0) * offset_height * random_range)
 
         label_new = []
         boxes_new = []
@@ -595,7 +595,7 @@ class mosaic(object):
         img_ymax = 0.5 * height + (height * 2)
 
         img = img_new[int(img_ymin):int(img_ymax), int(img_xmin):int(img_xmax)]
-        
+
         return img, label_new, boxes_new
 
     def push_bank(self, img, label, boxes):

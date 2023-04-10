@@ -2,22 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.init as init
 
-def uniform_init(param):
-    init.uniform_(param, a=-0.1, b=0.1)
-
-def weights_init(module):
-    if isinstance(module, nn.Conv2d):
-        nn.init.xavier_uniform_(module.weight.data)
-        if module.bias is not None:
-            nn.init.constant_(module.bias.data, 0.0)
-        #     # uniform_init(module.bias.data)
-        #     module.bias.data.zero_()
-
-    if isinstance(module, nn.Linear):
-        module.weight.data.normal_(mean=0.0, std=1.0)
-        if module.bias is not None:
-            module.bias.data.zero_()
-
 def autopad(k, p=None):
     # Calculate padding for 'same' convolution
     # k = 1, p = 0
@@ -62,6 +46,8 @@ class Conv2d(nn.Module):
         if act == 'relu':
             self.act = nn.ReLU()
 
+        self.init_weights()
+
     def forward(self, x):
         x = self.conv2d(x)
         
@@ -72,6 +58,14 @@ class Conv2d(nn.Module):
             x = self.act(x)
 
         return x
+    
+    def init_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.xavier_uniform_(m.weight.data)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias.data, 0.0)
+    
 
 class GroupConv2d(nn.Module):
     """
@@ -92,7 +86,7 @@ class GroupConv2d(nn.Module):
         
         # default 
         # torch.nn.Conv2d(in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1, groups=1, bias=True, padding_mode='zeros', device=None, dtype=None)
-        self.depth2d = nn.Conv2d(cin, cout, k, s, autopad(k, p=p), d, cin, bias, pm)
+        self.conv2d = nn.Conv2d(cin, cout, k, s, autopad(k, p=p), d, cin, bias, pm)
         
         # default
         # torch.nn.BatchNorm2d(num_features, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True, device=None, dtype=None)
@@ -106,8 +100,10 @@ class GroupConv2d(nn.Module):
         if act == 'relu':
             self.act = nn.ReLU()
 
+        self.init_weights()
+
     def forward(self, x):
-        x = self.depth2d(x)
+        x = self.conv2d(x)
         
         if self.bn is not None:
             x = self.bn(x.contiguous())
@@ -116,6 +112,13 @@ class GroupConv2d(nn.Module):
             x = self.act(x)
 
         return x
+    
+    def init_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.xavier_uniform_(m.weight.data)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias.data, 0.0)
 
 class MobileNet_V2_Conv2d(nn.Module):
     """

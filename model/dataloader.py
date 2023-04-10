@@ -57,6 +57,7 @@ class dataset(Dataset):
         img, labels, boxes = self.augmentator(img, labels, boxes, self.istrain)
         
         if len(labels) == 0 or len(boxes) == 0:
+            print(self.data[idx])
             return None, None
             
         gt = self.preprocessor(labels, boxes)
