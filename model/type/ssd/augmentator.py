@@ -32,11 +32,12 @@ class augmentator(object):
 
             # resize
             Resize(input_size),
+            RandomVFlip(p=0.5),
             ]
 
         self.transform_valid = [
-            RandomVFlip(p=0.5),
             Resize(input_size),
+            RandomVFlip(p=0.5),
             ]
             
     def __call__(self, img, labels, boxes, istrain):
