@@ -26,28 +26,17 @@ example
 """
 
 def anchor_generator(config):
-    input_size = config['INPUT_SIZE']
     anchor_scale = config['ANCHOR_SCALE']
-    anchor_size = config['ANCHOR_SIZE']
+    anchor_grid_w = config['ANCHOR_GRID_W']
+    anchor_grid_h = config['ANCHOR_GRID_H']
     anchor_n = config['ANCHOR_N']
     
-    grid_h, grid_w = math.ceil(input_size[0] / anchor_size[0]), math.ceil(input_size[1] / anchor_size[0])
-    a1 = get_anchor(grid_h, grid_w, anchor_n[0], anchor_scale[0], anchor_scale[1])
-    
-    grid_h, grid_w = math.ceil(input_size[0] / anchor_size[1]), math.ceil(input_size[1] / anchor_size[1])
-    a2 = get_anchor(grid_h, grid_w, anchor_n[1], anchor_scale[1], anchor_scale[2])
-    
-    grid_h, grid_w = math.ceil(input_size[0] / anchor_size[2]), math.ceil(input_size[1] / anchor_size[2])
-    a3 = get_anchor(grid_h, grid_w, anchor_n[2], anchor_scale[2], anchor_scale[3])
-    
-    grid_h, grid_w = math.ceil(input_size[0] / anchor_size[3]), math.ceil(input_size[1] / anchor_size[3])
-    a4 = get_anchor(grid_h, grid_w, anchor_n[3], anchor_scale[3], anchor_scale[4])
-    
-    grid_h, grid_w = math.ceil(input_size[0] / anchor_size[4]), math.ceil(input_size[1] / anchor_size[4])
-    a5 = get_anchor(grid_h, grid_w, anchor_n[4], anchor_scale[4], anchor_scale[5])
-    
-    grid_h, grid_w = math.ceil(input_size[0] / anchor_size[5]), math.ceil(input_size[1] / anchor_size[5])
-    a6 = get_anchor(grid_h, grid_w, anchor_n[5], anchor_scale[5], 1.0)
+    a1 = get_anchor(anchor_grid_h[0], anchor_grid_w[0], anchor_n[0], anchor_scale[0], anchor_scale[1])
+    a2 = get_anchor(anchor_grid_h[1], anchor_grid_w[1], anchor_n[1], anchor_scale[1], anchor_scale[2])
+    a3 = get_anchor(anchor_grid_h[2], anchor_grid_w[2], anchor_n[2], anchor_scale[2], anchor_scale[3])
+    a4 = get_anchor(anchor_grid_h[3], anchor_grid_w[3], anchor_n[3], anchor_scale[3], anchor_scale[4])
+    a5 = get_anchor(anchor_grid_h[4], anchor_grid_w[4], anchor_n[4], anchor_scale[4], anchor_scale[5])
+    a6 = get_anchor(anchor_grid_h[5], anchor_grid_w[5], anchor_n[5], anchor_scale[5], 1.0)
     
     anchor = np.concatenate([a1, a2, a3, a4, a5, a6], axis=0)
     
@@ -93,7 +82,6 @@ def get_anchor(fh, fw, n_anchor, s1, s2):
         
         if n_anchor != 6:
             anchors = np.concatenate([a1, a2, a3_1, a3_2], axis=0)
-            anchors = np.clip(anchors, 0.0, 1.0)
             return anchors
         else: 
             # 4: 3x 1/3x
@@ -106,5 +94,4 @@ def get_anchor(fh, fw, n_anchor, s1, s2):
             a4_1 = np.concatenate([cx, cy, cw, ch], axis=1)
             a4_2 = np.concatenate([cx, cy, ch, cw], axis=1)
             anchors = np.concatenate([a1, a2, a3_1, a3_2, a4_1, a4_2], axis=0)
-            anchors = np.clip(anchors, 0.0, 1.0)
             return anchors

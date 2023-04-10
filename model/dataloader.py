@@ -19,12 +19,12 @@ class dataset(Dataset):
         self.device = config['DEVICE']
 
         if purpose == 'train':
-            image_dir = '/dataset' / self.dataset / Path('images_train')
-            label_dir = '/dataset' / self.dataset / Path('annotations_train')
+            image_dir = Path(config['DATASET_PATH']) / self.dataset / Path('images_train')
+            label_dir = Path(config['DATASET_PATH']) / self.dataset / Path('annotations_train')
             self.istrain = True
         if purpose == 'valid':
-            image_dir = '/dataset' / self.dataset / Path('images_valid')
-            label_dir = '/dataset' / self.dataset / Path('annotations_valid')
+            image_dir = Path(config['DATASET_PATH']) / self.dataset / Path('images_valid')
+            label_dir = Path(config['DATASET_PATH']) / self.dataset / Path('annotations_valid')
             self.istrain = False
 
         data = []

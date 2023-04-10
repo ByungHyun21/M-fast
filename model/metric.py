@@ -12,6 +12,7 @@ class mAP(object):
     def __init__(self, config):
         super().__init__()
         self.input_size = config['INPUT_SIZE']
+        self.dataset_path = config['DATASET_PATH']
         
     def set(self, dataset, category, dataset_class, model_class):
         self.dataset = dataset
@@ -22,8 +23,8 @@ class mAP(object):
         assert self.dataset_class is not None, "dataset_class is not set"
         assert self.model_class is not None, "model_class is not set"
         
-        image_dir = Path('/dataset') / self.dataset / Path('images_valid')
-        label_dir = Path('/dataset') / self.dataset / Path('annotations_valid')
+        image_dir = Path(self.dataset_path) / self.dataset / Path('images_valid')
+        label_dir = Path(self.dataset_path) / self.dataset / Path('annotations_valid')
         
         data = []
         for sub_dir in category:

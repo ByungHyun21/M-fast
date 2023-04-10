@@ -24,8 +24,8 @@ NMS_IOU_THRESHOLD: 0.5
 
 ### Training
 STEPLR: [500000, 600000, 700000]
-LR: 0.01
-BATCH_SIZE_MULTI_GPU: 32 # BATCH_SIZE_MULTI_GPU will divide by GPU_NUM e.g. 256/8=32, Batch size must be greater than 8
+LR: 0.004
+BATCH_SIZE_MULTI_GPU: 8 # BATCH_SIZE_MULTI_GPU will divide by GPU_NUM e.g. 256/8=32, Batch size must be greater than 8
 WEIGHT_DECAY: 0.0005
 MOMENTUM: 0.9
 

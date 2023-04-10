@@ -130,7 +130,7 @@ class ssd_mobilenet_v2(nn.Module):
     
     def review(self, x):
         x = x.permute(0, 2, 3, 1).contiguous()
-        x = x.reshape(x.shape[0], -1, self.nc).contiguous()
+        x = x.reshape(x.shape[0], -1, self.nc)
         return x
     
     

@@ -87,6 +87,7 @@ def train(rank:int, config:dict):
             print(f"\n\nModel: {config['MODEL']}, epoch: {epoch}")
             
         img_train = []
+        gt_train = []
             
         # # # # #
         # Training
@@ -109,8 +110,9 @@ def train(rank:int, config:dict):
             if rank == 0:
                 pbar.set_postfix_str(manager.loss_print() + f"lr: {scheduler.get_last_lr()[0]:.6f}")
 
-            if len(img_train) == 0:
-                img_train = img[:8]
+            if len(img_train) < 8:
+                img_train.append(img[0].cpu().numpy())
+                gt_train.append(gt[0].cpu().numpy())
                 
             dist.barrier()
             
@@ -138,10 +140,9 @@ def train(rank:int, config:dict):
 
         # report inference result to wandb
         manager.wandb_report(step, {'lr': scheduler.get_last_lr()[0]})
-        if ('Object Detection' in config['TASK']) and (epoch % 10 == 0) and (epoch != 0):
+        if ('Object Detection' in config['TASK']) and (epoch % 10 == 0):
             manager.wandb_report_object_detection(step, model)
-            
-            manager.wandb_report_object_detection_training(step, model, img_train)
+            manager.wandb_report_object_detection_training(step, model, img_train, gt_train)
             
         if epoch % 5 == 0:
             if 'mAP' in config['METRIC']:
@@ -169,12 +170,12 @@ def train(rank:int, config:dict):
         mAPs = metric_mAP(rank, model)
         metric_mAP.print()
     
-        # with open('model/config/dataset/voc.yaml') as f:
-        #     target = yaml.load(f, Loader=yaml.SafeLoader)
-        # metric_mAP.set(target['DATASET'], target['CATEGORY'], target['CLASS'], model.model_class)
-        # metric_mAP.reset()
-        # mAPs = metric_mAP(rank, model)
-        # metric_mAP.print()
+        with open('model/config/dataset/voc.yaml') as f:
+            target = yaml.load(f, Loader=yaml.SafeLoader)
+        metric_mAP.set(target['DATASET'], target['CATEGORY'], target['CLASS'], model.model_class)
+        metric_mAP.reset()
+        mAPs = metric_mAP(rank, model)
+        metric_mAP.print()
     
         with open('model/config/dataset/crowdhuman.yaml') as f:
             target = yaml.load(f, Loader=yaml.SafeLoader)
@@ -195,17 +196,21 @@ def train(rank:int, config:dict):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', type=str, default='model/config/ssd/test.yaml')
+    parser.add_argument('--config', type=str, default='model/config/ssd/ssd_vgg16_voc.yaml')
     parser.add_argument('--coco', action='store_true')
     parser.add_argument('--voc', action='store_true')
     parser.add_argument('--crowdhuman', action='store_true')
     parser.add_argument('--argoseye', action='store_true')
     parser.add_argument('--wandb', default=None, type=str)
+    parser.add_argument('--dataset_path', default=None, type=str)
     opt = parser.parse_args()
 
     #TODO: 테스트용
-    opt.coco = True
+    opt.voc = True
     opt.wandb = 'byunghyun'
+    # opt.dataset_path = 'C:\dataset'
+    
+    assert opt.dataset_path is not None, 'dataset path is not defined'
 
     config = configuration(opt)
     

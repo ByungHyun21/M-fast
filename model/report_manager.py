@@ -1,8 +1,10 @@
 import wandb
 import time, sys, os
 import cv2
+import numpy as np
 
 import torch
+
 
 class AverageMeter:
     def __init__(self):
@@ -32,7 +34,8 @@ class report_manager():
         
         self.wandb_enabled = False
         if (rank == 0) and (self.wandb_entity is not None):
-            wandb.init(project='M-FAST', entity=self.wandb_entity, config=config)
+            # wandb.init(project='M-FAST', entity=self.wandb_entity, config=config)
+            wandb.init(project='M-FAST', config=config)
             self.wandb_enabled = True
         
     def reset(self):
@@ -81,8 +84,11 @@ class report_manager():
             for img_name in img_list:
                 img = cv2.imread(os.path.join('sample', sample_dir, img_name))
                 img_resize = cv2.resize(img, (model.input_size[1], model.input_size[0]))
-                
-                h, w, _ = img.shape
+
+                h = 600
+                w = 600
+                img_show = cv2.resize(img, (w, h))
+
                 detections = model(torch.from_numpy(img_resize).permute(2, 0, 1).float().unsqueeze(0).to(model.device))
                 # detections : [batch, N_pred, [class, score, xmin, ymin, xmax, ymax]]
                 detections = detections[0].cpu().detach().numpy()
@@ -103,12 +109,12 @@ class report_manager():
                     all_boxes.append(box_data)
 
                 # log to wandb: raw image, predictions, and dictionary of class labels for each class id
-                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-                wandb_images.append(wandb.Image(img, boxes = {"predictions": {"box_data": all_boxes, "class_labels" : class_id_to_label}}))
+                img_show = cv2.cvtColor(img_show, cv2.COLOR_BGR2RGB)
+                wandb_images.append(wandb.Image(img_show, boxes = {"predictions": {"box_data": all_boxes, "class_labels" : class_id_to_label}}))
               
                 wandb.log({"Object Detection/" + sample_dir: wandb_images}, step=epoch)
                 
-    def wandb_report_object_detection_training(self, epoch, model, img_list):
+    def wandb_report_object_detection_training(self, epoch, model, img_list, label_list):
         if not self.wandb_enabled:
             return 
         
@@ -118,31 +124,81 @@ class report_manager():
             
         model.eval()
         model.model.eval()
-        img_list = img_list.permute(0, 2, 3, 1).numpy()
+        img_list = torch.from_numpy(np.stack(img_list, axis=0)).permute(0, 2, 3, 1).numpy()
+        label_list = torch.from_numpy(np.stack(label_list, axis=0)).numpy()
+
         wandb_images = []
-        for img in img_list:
-            h, w, _ = img.shape
+        wandb_images_gt = []
+        for img, label in zip(img_list, label_list):
             detections = model(torch.from_numpy(img).permute(2, 0, 1).float().unsqueeze(0).to(model.device))
             # detections : [batch, N_pred, [class, score, xmin, ymin, xmax, ymax]]
             detections = detections[0].cpu().detach().numpy()
             # detections : N_pred, [class, score, xmin, ymin, xmax, ymax]
             
+            h = 600
+            w = 600
+            img_show = cv2.cvtColor(cv2.resize(img, (w, h)), cv2.COLOR_BGR2RGB)
+            img_show_gt = img_show.copy()
+
             all_boxes = []
             for detection in detections:
                 box_data = {"position" : {
-                "minX" : float(detection[2] * w),
-                "maxX" : float(detection[4] * w),
-                "minY" : float(detection[3] * h),
-                "maxY" : float(detection[5] * h)} ,
-                "class_id" : int(detection[0]),
-                # optionally caption each box with its class and score
-                "box_caption" : "%s (%.3f)" % (str(int(detection[0])), float(detection[1])),
-                "domain" : "pixel",
-                "scores" : { "score" : float(detection[1]) }}
+                    "minX" : float(detection[2] * w),
+                    "maxX" : float(detection[4] * w),
+                    "minY" : float(detection[3] * h),
+                    "maxY" : float(detection[5] * h)} ,
+                    "class_id" : int(detection[0]),
+                    # optionally caption each box with its class and score
+                    "box_caption" : "%s (%.3f)" % (str(int(detection[0])), float(detection[1])),
+                    "domain" : "pixel",
+                    "scores" : { "score" : float(detection[1]) }}
                 all_boxes.append(box_data)
 
             # log to wandb: raw image, predictions, and dictionary of class labels for each class id
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            wandb_images.append(wandb.Image(img, boxes = {"predictions": {"box_data": all_boxes, "class_labels" : class_id_to_label}}))
+            wandb_images.append(wandb.Image(img_show, boxes = {"predictions": {"box_data": all_boxes, "class_labels" : class_id_to_label}}))
             
-            wandb.log({"Object Detection/training": wandb_images}, step=epoch)
+
+            # report ground truth and anchor
+            original_gt, related_anchor = model.convert_gt(torch.from_numpy(label).unsqueeze(0).to(model.device))
+            # original_gt : [batch, N_pred, [class, xmin, ymin, xmax, ymax]]
+            # related_anchor : [batch, N_pred, [class, score, xmin, ymin, xmax, ymax]]
+
+            for gt_box, anchor_box in zip(original_gt[0], related_anchor[0]):
+                # Draw ground truth (green box)
+                if int(gt_box[0]) != -1: # -1 means no object
+                    xmin = int(gt_box[1] * w)
+                    xmax = int(gt_box[3] * w)
+                    ymin = int(gt_box[2] * h)
+                    ymax = int(gt_box[4] * h)
+                    gt_class = int(gt_box[0])
+
+                    cv2.rectangle(img_show_gt, (xmin, ymin), (xmax, ymax), (0, 255, 0), 2)
+                    cv2.putText(img_show_gt, str(model.model_class[gt_class]), (xmin, ymin), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+
+                # Draw anchor (red box)
+                if int(anchor_box[0]) != -1: # -1 means no object
+                    anchor_cx = int(anchor_box[1] * w)
+                    anchor_cy = int(anchor_box[2] * w)
+                    anchor_w = int(anchor_box[3] * h)
+                    anchor_h = int(anchor_box[4] * h)
+                    anchor_class = int(anchor_box[0])
+
+                    xmin = anchor_cx - anchor_w // 2
+                    xmax = anchor_cx + anchor_w // 2
+                    ymin = anchor_cy - anchor_h // 2
+                    ymax = anchor_cy + anchor_h // 2
+                
+                    cv2.rectangle(img_show_gt, (xmin, ymin), (xmax, ymax), (0, 0, 255), 2)
+                    cv2.putText(img_show_gt, str(model.model_class[anchor_class]), (xmin, ymin), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+
+                    # Draw anchor to ground truth (red line)
+                    to_xmin = int(gt_box[1] * w)
+                    to_ymin = int(gt_box[2] * h)
+
+                    cv2.line(img_show_gt, (xmin, ymin), (to_xmin, to_ymin), (255, 0, 0), 2)
+
+            wandb_images_gt.append(wandb.Image(img_show_gt))
+
+            
+        wandb.log({"Object Detection/training": wandb_images}, step=epoch)
+        wandb.log({"Object Detection/ground_truth": wandb_images_gt}, step=epoch)

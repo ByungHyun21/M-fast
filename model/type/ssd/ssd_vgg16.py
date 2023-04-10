@@ -4,8 +4,8 @@ from pathlib import Path
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as f
-import torch.optim as optim
+import torchvision
+
 
 from model.layers import *
 
@@ -18,70 +18,80 @@ class ssd_vgg16(nn.Module):
         self.device = config['DEVICE']
         self.model_class = config['CLASS']
         
-        bias = config['BIAS']
         anchor_n = config['ANCHOR_N']
         
         # self.mean = torch.reshape(torch.tensor(config['MEAN'], device=self.ddp_rank), (1, -1, 1, 1))
         # self.std = torch.reshape(torch.tensor(config['STD'], device=self.ddp_rank), (1, -1, 1, 1))
         
         self.backbone = nn.Sequential(
-            Conv2d(3, 32, s=2, bias=bias, act='relu6'),     # 300x300x3 -> 150x150x32
-            GroupConv2d(32, 32, bias=bias, act='relu6'),    # 150x150x32 -> 150x150x32
-            Conv2d(32, 16, k=1, bias=bias, act=None),       # 150x150x32 -> 150x150x16
+            # Conv 1
+            Conv2d(3, 64, act='relu'),           # 300x300x3 -> 300x300x64
+            Conv2d(64, 64, act='relu'),          # 300x300x64 -> 300x300x64
+            MaxPool2d(k=2, s=2, p=0),            # 300x300x64 -> 150x150x64
             
-            MobileNet_V2_Conv2d(16, 24, s=2, bias=bias),    # 150x150x16 -> 75x75x24
-            MobileNet_V2_Conv2d(24, 24, bias=bias),         # 75x75x24 -> 75x75x24
-            MobileNet_V2_Conv2d(24, 32, s=2, bias=bias),    # 75x75x24 -> 38x38x32
-            MobileNet_V2_Conv2d(32, 32, bias=bias),         # 38x38x32 -> 38x38x32
-            MobileNet_V2_Conv2d(32, 32, bias=bias),         # 38x38x32 -> 38x38x32
-            MobileNet_V2_Conv2d(32, 64, s=2, bias=bias),    # 38x38x32 -> 19x19x64
-            MobileNet_V2_Conv2d(64, 64, bias=bias),         # 19x19x64 -> 19x19x64
-            MobileNet_V2_Conv2d(64, 64, bias=bias),         # 19x19x64 -> 19x19x64
-            MobileNet_V2_Conv2d(64, 64, bias=bias),         # 19x19x64 -> 19x19x64
-            MobileNet_V2_Conv2d(64, 96, bias=bias),         # 19x19x64 -> 19x19x96
-            MobileNet_V2_Conv2d(96, 96, bias=bias),         # 19x19x96 -> 19x19x96
-            MobileNet_V2_Conv2d(96, 96, bias=bias),         # 19x19x96 -> 19x19x96
+            # Conv 2
+            Conv2d(64, 128, act='relu'),         # 150x150x64 -> 150x150x128
+            Conv2d(128, 128, act='relu'),        # 150x150x128 -> 150x150x128
+            MaxPool2d(k=2, s=2, p=0),            # 150x150x128 -> 75x75x128
+            
+            # Conv 3
+            Conv2d(128, 256, act='relu'),        # 75x75x128 -> 75x75x256
+            Conv2d(256, 256, act='relu'),        # 75x75x256 -> 75x75x256
+            Conv2d(256, 256, act='relu'),        # 75x75x256 -> 75x75x256
+            MaxPool2d(k=2, s=2, p=0),            # 75x75x256 -> 38x38x256
         )
+
+        # if config['BACKBONE_WEIGHT']:
+        #     state_dict = self.state_dict()
+        #     param_names = list(state_dict.keys())
+
+        #     pretrained_state_dict = torchvision.models.vgg16(pretrained=True).state_dict()
+        #     pretrained_param_names = list(pretrained_state_dict.keys())
+
+        #     for i, param in enumerate(param_names):
+        #         state_dict[param] = pretrained_state_dict[pretrained_param_names[i]]
+        #     self.load_state_dict(state_dict)
         
         self.extra_1 = nn.Sequential(
-            Conv2d(96, 576, k=1, bias=bias, act='relu6'),   # 19x19x96 -> 19x19x576
+            Conv2d(256, 512, act='relu'),        # 38x38x256 -> 38x38x512
+            Conv2d(512, 512, act='relu'),        # 38x38x512 -> 38x38x512
+            Conv2d(512, 512, act='relu'),        # 38x38x512 -> 38x38x512
         )
         self.extra_2 = nn.Sequential(
-            GroupConv2d(576, 576, s=2, bias=bias, act='relu6'), # 19x19x576 -> 10x10x576
-            Conv2d(576, 160, k=1, bias=bias, act=None),     # 10x10x576 -> 10x10x160
-            MobileNet_V2_Conv2d(160, 160, bias=bias),       # 10x10x160 -> 10x10x160
-            MobileNet_V2_Conv2d(160, 160, bias=bias),       # 10x10x160 -> 10x10x160
-            MobileNet_V2_Conv2d(160, 320, bias=bias),       # 10x10x160 -> 10x10x320
-            Conv2d(320, 1280, k=1, bias=bias, act='relu6'), # 10x10x320 -> 10x10x1280
+            MaxPool2d(k=2, s=2, p=0),            # 38x38x512 -> 19x19x512
+            Conv2d(512, 512, act='relu'),        # 19x19x512 -> 19x19x512
+            Conv2d(512, 512, act='relu'),        # 19x19x512 -> 19x19x512
+            Conv2d(512, 512, act='relu'),        # 19x19x512 -> 19x19x512
+            MaxPool2d(k=3, s=1, p=1),            # 19x19x512 -> 19x19x512
+            Conv2d(512, 1024, act='relu'),       # 19x19x512 -> 19x19x1024
+            Conv2d(1024, 1024, act='relu'),      # 19x19x1024 -> 19x19x1024
         )
         self.extra_3 = nn.Sequential(
-            Conv2d(1280, 256, k=1, bias=bias, act='relu6'), # 10x10x1280 -> 10x10x256
-            GroupConv2d(256, 256, s=2, bias=bias, act='relu6'), # 10x10x256 -> 5x5x256
-            Conv2d(256, 512, k=1, bias=bias, act='relu6'),  # 5x5x256 -> 5x5x512
+            Conv2d(1024, 256, k=1, act='relu'),      # 19x19x1024 -> 19x19x256
+            Conv2d(256, 512, k=3, s=2, act='relu'),  # 19x19x256 -> 10x10x512
         )
         self.extra_4 = nn.Sequential(
-            Conv2d(512, 128, k=1, bias=bias, act='relu6'),  # 5x5x512 -> 5x5x128
-            GroupConv2d(128, 128, s=2, bias=bias, act='relu6'), # 5x5x128 -> 3x3x128
-            Conv2d(128, 256, k=1, bias=bias, act='relu6'),  # 3x3x128 -> 3x3x256
+            Conv2d(512, 128, k=1, act='relu'),       # 10x10x512 -> 10x10x128
+            Conv2d(128, 256, k=3, s=2, act='relu'),  # 10x10x128 -> 5x5x256
         )
         self.extra_5 = nn.Sequential(
-            Conv2d(256, 128, k=1, bias=bias, act='relu6'),  # 3x3x256 -> 3x3x128
-            GroupConv2d(128, 128, s=2, bias=bias, act='relu6'), # 3x3x128 -> 2x2x128
-            Conv2d(128, 256, k=1, bias=bias, act='relu6'),  # 2x2x128 -> 2x2x256
+            Conv2d(256, 128, k=1, act='relu'),       # 5x5x256 -> 5x5x128
+            Conv2d(128, 256, k=3, p=0, act='relu'),  # 5x5x128 -> 3x3x256
         )
         self.extra_6 = nn.Sequential(
-            Conv2d(256, 64, k=1, bias=bias, act='relu6'),   # 2x2x256 -> 2x2x64
-            GroupConv2d(64, 64, s=2, bias=bias, act='relu6'),  # 2x2x64 -> 1x1x64
-            Conv2d(64, 128, k=1, bias=bias, act='relu6'),   # 1x1x64 -> 1x1x128
+            Conv2d(256, 128, k=1, act='relu'),       # 3x3x256 -> 3x3x128
+            Conv2d(128, 256, k=3, p=0, act='relu'),  # 3x3x128 -> 1x1x256
         )
         
-        self.head_1 = Conv2d(576, anchor_n[0]*self.nc, bn=False, bias=False, act=None)   # 19x19x576 -> 19x19x(anchors*nc)
-        self.head_2 = Conv2d(1280, anchor_n[1]*self.nc, bn=False, bias=False, act=None)   # 10x10x160 -> 10x10x(anchors*nc)
-        self.head_3 = Conv2d(512, anchor_n[2]*self.nc, bn=False, bias=False, act=None)   # 5x5x256 -> 5x5x(anchors*nc)
-        self.head_4 = Conv2d(256, anchor_n[3]*self.nc, bn=False, bias=False, act=None)   # 3x3x256 -> 3x3x(anchors*nc)
-        self.head_5 = Conv2d(256, anchor_n[4]*self.nc, bn=False, bias=False, act=None)   # 2x2x256 -> 2x2x(anchors*nc)
-        self.head_6 = Conv2d(128, anchor_n[5]*self.nc, bn=False, bias=False, act=None)   # 1x1x128 -> 1x1x(anchors*nc)
+        self.head_1 = Conv2d(512, anchor_n[0]*self.nc, bn=False, act=None)   # 19x19x576 -> 19x19x(anchors*nc)
+        self.head_2 = Conv2d(1024, anchor_n[1]*self.nc, bn=False, act=None)   # 10x10x160 -> 10x10x(anchors*nc)
+        self.head_3 = Conv2d(512, anchor_n[2]*self.nc, bn=False, act=None)   # 5x5x256 -> 5x5x(anchors*nc)
+        self.head_4 = Conv2d(256, anchor_n[3]*self.nc, bn=False, act=None)   # 3x3x256 -> 3x3x(anchors*nc)
+        self.head_5 = Conv2d(256, anchor_n[4]*self.nc, bn=False, act=None)   # 2x2x256 -> 2x2x(anchors*nc)
+        self.head_6 = Conv2d(256, anchor_n[5]*self.nc, bn=False, act=None)   # 1x1x128 -> 1x1x(anchors*nc)
             
+        self.rescale_factor = nn.Parameter(torch.FloatTensor(1, 512, 1, 1), requires_grad=True)
+        nn.init.constant_(self.rescale_factor, 20)
 
         self.backbone.apply(weights_init)
         self.extra_1.apply(weights_init)
@@ -110,6 +120,10 @@ class ssd_vgg16(nn.Module):
         x5 = self.extra_5(x4)
         x6 = self.extra_6(x5)
         
+        norm = x1.pow(2).sum(dim=1, keepdim=True).sqrt()
+        x1 = x1 / norm
+        x1 = x1 * self.rescale_factor
+
         x1 = self.head_1(x1)
         x2 = self.head_2(x2)
         x3 = self.head_3(x3)
@@ -129,7 +143,7 @@ class ssd_vgg16(nn.Module):
         return x
     
     def review(self, x):
-        x = x.permute(0, 2, 3, 1)
+        x = x.permute(0, 2, 3, 1).contiguous()
         x = x.reshape(x.shape[0], -1, self.nc)
         return x
     

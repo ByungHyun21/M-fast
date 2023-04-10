@@ -28,6 +28,7 @@ def configuration(opt):
             dataset = yaml.load(f, Loader=yaml.SafeLoader)
 
     config.update(dataset)
+    config.update({'DATASET_PATH': opt.dataset_path})
     config.update({'NUM_CLASSES': len(config['CLASS'])})
 
     # DDP configuration    
