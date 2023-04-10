@@ -9,16 +9,10 @@ from torchvision import transforms
 Background_color = 0
 
 """
-img : 0~1 RGB float32, numpy.array
+img : 0~255 RGB Uint8, numpy.array
 label : int list. ex) [2, 1, 2, 2, 0]
 boxes : float list, 0~1, cx, cy, w, h
         ex) [[0.1, 0.2, 0.2, 0.3], [0.3, 0.89, 0.3, 0.4]]
-
-
-         *** Input is 0~255 
-         *** Normalize -> 0~255 change 0~1
-         *** do Augmentation
-         *** DeNormalize -> 0~1 change 0~255
 """
 
 class Resize(object):
@@ -28,18 +22,6 @@ class Resize(object):
         
     def __call__(self, img, label, boxes):
         img = cv2.resize(img, (self.imw, self.imh))
-        
-        return img, label, boxes
-
-class Normalize(object):
-    def __call__(self, img, label, boxes):
-        img = (img / 255.0).astype(np.float32)
-        
-        return img, label, boxes
-
-class DeNormalize(object):
-    def __call__(self, img, label, boxes):
-        img = (img * 255.0).astype(np.uint8)
         
         return img, label, boxes
 
@@ -80,33 +62,6 @@ class RandomNoiseGaussian(object):
         
         img = np.clip(img, 0, 1)
 
-        return img, label, boxes
-
-class brighter(object):
-    def __init__(self, brightness=0.5, p=0.5):
-        self.p = p
-        self.brightness = brightness
-        
-    def __call__(self, img, label, boxes):
-        if random.random() > self.p:
-            return img, label, boxes
-        
-        img = img * (1 + random.random() * self.brightness)
-        img = np.clip(img, a_min=0.0, a_max=1.0)
-        
-        return img, label, boxes
-
-class darker(object):
-    def __init__(self, darkness=0.5, p=0.5):
-        self.p = p
-        self.darkness = darkness
-        
-    def __call__(self, img, label, boxes):
-        if random.random() > self.p:
-            return img, label, boxes
-        
-        img = img * (1 - random.random() * self.darkness)
-        
         return img, label, boxes
 
 class blurring(object):
@@ -370,42 +325,6 @@ class Random90Rotation(object):
             
             return img, label, boxes
 
-# TODO: 박스 내부에 임의의 지점을 지워버림 혹은 대체
-class RandomErase(object):
-    def __init__(self, p):
-        self.p = p
-        
-    def __call__(self, img, label, boxes):
-        if random.random() > self.p:
-            return img, label, boxes
-        
-        
-        return img, label, boxes
-
-# TODO: 박스 내부에 SxS 그리드를 만들고, 그리드 몇개를 지워버림
-class RandomGridErase(object):
-    def __init__(self, p):
-        self.p = p
-        
-    def __call__(self, img, label, boxes):
-        if random.random() > self.p:
-            return img, label, boxes
-        
-        
-        return img, label, boxes
-
-# TODO: 박스 내부에 SxS 그리드를 만들고, 그리드를 규칙적으로 제거함
-class RandomGridMasking(object):
-    def __init__(self, p):
-        self.p = p
-        
-    def __call__(self, img, label, boxes):
-        if random.random() > self.p:
-            return img, label, boxes
-        
-        
-        return img, label, boxes
-
 class RandomVFlip(object):
     def __init__(self, p):
         self.p = p
@@ -464,13 +383,14 @@ class augment_hsv(object):
         return img_hsv, label, boxes
 
 class random_perspective(object):
-    def __init__(self, degrees=10, translate=.1, scale=.1, shear=5, perspective=0.0, p=0.5):
+    def __init__(self, degree=10, translate=.1, scale=.1, shear=5, perspective=0.0, p=0.5):
 
-        self.degrees = degrees
+        self.degrees = degree
         self.translate = translate
         self.scale = scale
         self.shear = shear
         self.perspective = perspective
+        self.background = (128, 128, 128)
         self.p = p
 
     def __call__(self, img, label, boxes):
@@ -510,7 +430,7 @@ class random_perspective(object):
 
         # Combined rotation matrix
         M = T @ S @ R @ P @ C  # order of operations (right to left) is IMPORTANT
-        img = cv2.warpAffine(img, M[:2], dsize=(width, height), borderValue=(114, 114, 114))
+        img = cv2.warpAffine(img, M[:2], dsize=(width, height), borderValue=self.background)
 
         label_new = []
         boxes_new = []
@@ -554,6 +474,146 @@ class random_perspective(object):
 
         return img, label_new, boxes_new
 
+class mosaic(object):
+    def __init__(self, canvas_range=1.0, p=0.5):
+        self.canvas_range = canvas_range
+        self.background = (128.0, 128.0, 128.0)
+        self.p = p
+
+        self.bank_img = []
+        self.bank_label = []
+        self.bank_boxes = []
+
+    def __call__(self, img, label, boxes):
+        self.push_bank(img, label, boxes)
+
+        if len(self.bank_img) < 4: # 4개 미만이면 리턴
+            return img, label, boxes
+
+        if random.random() > self.p:
+            return img, label, boxes
+        
+        height = img.shape[0]  # shape(h,w,c)
+        width = img.shape[1]
+
+        # background
+        img_new = np.zeros((height*3, width*3, 3), dtype=np.uint8) + np.array(self.background, dtype=np.uint8)
+
+        # 4개 이미지 랜덤으로 뽑기
+        img_list = []
+        label_list = []
+        boxes_list = []
+        for _ in range(4):
+            img, label, boxes = self.pop_bank()
+            img_list.append(img)
+            label_list.append(label)
+            boxes_list.append(boxes)
+
+        # 4개 이미지 랜덤으로 위치 지정
+        idx_list = [0, 1, 2, 3]
+        random.shuffle(idx_list)
+
+        # canvas에 이미지 붙이기
+        random_range = self.canvas_range
+        offset_width = 0.5 * width
+        offset_width = offset_width + ((random.random() - 0.5) * offset_width * random_range)
+        offset_height = 0.5 * height
+        offset_height = offset_height + ((random.random() - 0.5) * offset_height * random_range)
+
+        label_new = []
+        boxes_new = []
+        for i, idx in enumerate(idx_list):
+            img = img_list[i]
+            label = label_list[i]
+            boxes = boxes_list[i]
+
+            # order 
+            # 0 1
+            # 2 3
+
+            if idx == 0:
+                xmin = offset_width
+                ymin = offset_height
+            elif idx == 1:
+                xmin = width + offset_width
+                ymin = offset_height
+            elif idx == 2:
+                xmin = offset_width
+                ymin = height + offset_height
+            elif idx == 3:
+                xmin = width + offset_width
+                ymin = height + offset_height
+
+            img_new[int(ymin):int(ymin+height), int(xmin):int(xmin+width), :] = img
+
+            
+            # Transform label coordinates
+            for idx, box in enumerate(boxes):
+                # cx, cy, w, h -> x1, y1, x2, y2
+                # coordiante of original image
+                x1_origin = (box[0] - (box[2] / 2.0)) * width
+                x2_origin = (box[0] + (box[2] / 2.0)) * width
+                y1_origin = (box[1] - (box[3] / 2.0)) * height
+                y2_origin = (box[1] + (box[3] / 2.0)) * height
+
+                # x1, y1, x2, y2 -> x1, y1, x2, y2
+                # original image -> canvas image(2x)
+                x1_canvas = x1_origin + xmin - (width * 0.5)
+                x2_canvas = x2_origin + xmin - (width * 0.5)
+                y1_canvas = y1_origin + ymin - (height * 0.5)
+                y2_canvas = y2_origin + ymin - (height * 0.5)
+
+                cx = (x1_canvas + x2_canvas) / 2.0 / (width * 2)
+                cy = (y1_canvas + y2_canvas) / 2.0 / (height * 2)
+
+                # filter out boxes
+                if cx < 0 or cy < 0:
+                    continue
+                if cx > 1 or cy > 1:
+                    continue
+                
+                # adjust boxes
+                x1_canvas = np.clip(x1_canvas, 0, width * 2)
+                x2_canvas = np.clip(x2_canvas, 0, width * 2)
+                y1_canvas = np.clip(y1_canvas, 0, height * 2)
+                y2_canvas = np.clip(y2_canvas, 0, height * 2)
+
+                # x1, y1, x2, y2 -> cx, cy, w, h
+                cx = (x1_canvas + x2_canvas) / 2.0 / (width * 2)
+                cy = (y1_canvas + y2_canvas) / 2.0 / (height * 2)
+                w = (x2_canvas - x1_canvas) / (width * 2)
+                h = (y2_canvas - y1_canvas) / (height * 2)
+
+                
+
+                label_new.append(label[idx])
+                boxes_new.append([cx, cy, w, h])
+
+        img_xmin = 0.5 * width
+        img_ymin = 0.5 * height
+        img_xmax = 0.5 * width + (width * 2)
+        img_ymax = 0.5 * height + (height * 2)
+
+        img = img_new[int(img_ymin):int(img_ymax), int(img_xmin):int(img_xmax)]
+        
+        return img, label_new, boxes_new
+
+    def push_bank(self, img, label, boxes):
+        if len(self.bank_img) > 40:
+            return
+        
+        self.bank_img.append(img)
+        self.bank_label.append(label)
+        self.bank_boxes.append(boxes)
+
+    def pop_bank(self):
+        if len(self.bank_img) == 0:
+            return None
+        
+        idx = random.randint(0, len(self.bank_img) - 1)
+        
+        return self.bank_img.pop(idx), self.bank_label.pop(idx), self.bank_boxes.pop(idx)
+
 
 class Oneof(object):
     def __init__(self, auglist, p=0.5):
@@ -577,26 +637,34 @@ if __name__ == "__main__":
         def __init__(self, config):
             input_size = config['INPUT_SIZE']
 
-            self.transform = [
-                augment_hsv(p=1.0),
-                random_perspective(p=1.0),
-                Normalize(), # 255로 나누기
-                
-                # RandomVFlip(p=0.5),
-                # Oneof([
-                #     RandomZoomIn(p=1.0, zoom_range=0.4),
-                #     RandomZoomOut(p=1.0, zoom_range=0.4)
-                # ], p=0.9),
-                # RandomRotation(degree=5, p=0.2),
+            hsv_prob = config['HSV_PROB']
+            hsv_hgain = config['HSV_HGAIN']
+            hsv_sgain = config['HSV_SGAIN']
+            hsv_vgain = config['HSV_VGAIN']
 
-                # Oneof([
-                #     brighter(brightness=0.25, p=1.0),
-                #     darker(darkness=0.25, p=1.0)
-                # ], p=0.2),
-                
-                DeNormalize(), # 255 곱하기
+            mosaic_prob = config['MOSAIC_PROB']
+            mosaic_canvas_range = config['MOSAIC_CANVAS_RANGE']
+
+            perspective_prob = config['PERSPECTIVE_PROB']
+            perspective_degree = config['PERSPECTIVE_DEGREE']
+            perspective_translate = config['PERSPECTIVE_TRANSLATE']
+            perspective_scale = config['PERSPECTIVE_SCALE']
+            perspective_shear = config['PERSPECTIVE_SHEAR']
+            perspective_perspective = config['PERSPECTIVE_PERSPECTIVE']
+
+            self.transform = [
+                # photometric
+                augment_hsv(hgain=hsv_hgain, sgain=hsv_sgain, vgain=hsv_vgain, p=hsv_prob),
+
+                # resize
                 Resize(input_size),
-                
+
+                # geometric
+                mosaic(canvas_range=mosaic_canvas_range, p=mosaic_prob),
+                random_perspective(degree=perspective_degree, translate=perspective_translate, scale=perspective_scale, shear=perspective_shear, perspective=perspective_perspective, p=perspective_prob),
+
+                # resize
+                Resize(input_size),
                 ]
 
                 
@@ -606,29 +674,57 @@ if __name__ == "__main__":
 
             return img, labels, boxes
 
-    config = {'INPUT_SIZE': [300, 300]}
+    config = {'INPUT_SIZE': [600, 600],
+              'HSV_PROB': 1.0,
+              'HSV_HGAIN': 0.015,
+              'HSV_SGAIN': 0.7,
+              'HSV_VGAIN': 0.4,
+              'MOSAIC_PROB': 1.0,
+              'MOSAIC_CANVAS_RANGE': 1.0,
+              'PERSPECTIVE_PROB': 1.0,
+              'PERSPECTIVE_DEGREE': 10,
+              'PERSPECTIVE_TRANSLATE': 0.1,
+              'PERSPECTIVE_SCALE': 0.1,
+              'PERSPECTIVE_SHEAR': 2.0,
+              'PERSPECTIVE_PERSPECTIVE': 0.0,}
     aug = augmentator(config)
     
     while True:
-        # img = cv2.imread('sample/000000007900.jpg')
-        # label = [0]
-        # boxes = [[0.2710937559604645, 0.37361112236976624, 0.12656249105930328, 0.569444477558136]]
+        img = cv2.imread('sample/augmentation_test_sample.jpg')
+        labels = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 3, 3]
+        boxes = [
+                [0.587203125, 0.29015625, 0.08225, 0.0856875],
+                [0.127765625, 0.6070520833333333, 0.09259375, 0.44277083333333334],
+                [0.3613828125, 0.53690625, 0.149640625, 0.5682291666666667],
+                [0.7106171875, 0.34918750000000004, 0.13764062500000002, 0.2524166666666667],
+                [0.5806171874999999, 0.6483125, 0.129765625, 0.6539166666666667],
+                [0.6641718750000001, 0.6656979166666666, 0.1381875, 0.6651041666666667],
+                [0.730703125, 0.71721875, 0.17953125, 0.5655625000000001],
+                [0.8942734375000001, 0.6999479166666667, 0.21145312500000002, 0.6001041666666667],
+                [0.4047578124999999, 0.6232916666666667, 0.155671875, 0.5189166666666667],
+                [0.48404687499999993, 0.52875, 0.1389375, 0.6580833333333334],
+                [0.6632734375, 0.2982916666666667, 0.058015625, 0.09483333333333334],
+                [0.2449609375, 0.5548645833333333, 0.130046875, 0.47585416666666663],
+                [0.3625625, 0.58984375, 0.10978125000000001, 0.24489583333333334],
+                [0.07372656250000001, 0.5989062500000001, 0.083265625, 0.2531875],
+                [0.1106015625, 0.7226041666666667, 0.074109375, 0.18191666666666664],
+                [0.11028906249999999, 0.5195416666666667, 0.08707812499999999, 0.10620833333333332],
+                [0.37609375, 0.40187500000000004, 0.09753125, 0.12091666666666666]
+        ]
         
-        img = cv2.imread('sample/000000009000.jpg')
-        label = [0]
-        boxes = [[0.06406250596046448, 0.38750001788139343, 0.125, 0.4694444537162781]]
-        
-        img, label, boxes = aug(img, label, boxes)
-        img = cv2.resize(img, (300, 300))
+        img, labels, boxes = aug(img, labels, boxes)
+        img = cv2.resize(img, (600, 600))
         h, w, _ = img.shape
         
-        for box in boxes:
+        label_max = 3
+        for label, box in zip(labels, boxes):
             x1 = int(w * (box[0] - (box[2] / 2.0)))
             x2 = int(w * (box[0] + (box[2] / 2.0)))
             y1 = int(h * (box[1] - (box[3] / 2.0)))
             y2 = int(h * (box[1] + (box[3] / 2.0)))
         
-            cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 1)
+            color = (0, int(255//label_max * label), int(255 - 255//label_max * label))
+            cv2.rectangle(img, (x1, y1), (x2, y2), color, 1)
         
         print(img[0, 0, :], np.max(np.max(np.max(img))), type(img), img.dtype)
         
