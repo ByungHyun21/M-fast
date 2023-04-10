@@ -1,5 +1,0 @@
-[default]
-entity = byunghyun
-project = M-FAST
-base_url = https://api.wandb.ai
-
