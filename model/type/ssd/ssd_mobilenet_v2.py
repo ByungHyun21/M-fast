@@ -125,7 +125,7 @@ class ssd_mobilenet_v2(nn.Module):
             state_dict = self.state_dict()
             param_names = list(state_dict.keys())
 
-            pretrained_dict = torchvision.models.mobilenet_v2(pretrained=True).state_dict()
+            pretrained_dict = torchvision.models.mobilenet_v2(weights=torchvision.models.MobileNet_V2_Weights.DEFAULT).state_dict()
             pretrained_names = list(pretrained_dict.keys())
 
             for i, name in enumerate(param_names):

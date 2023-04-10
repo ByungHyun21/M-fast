@@ -400,79 +400,83 @@ class random_perspective(object):
         height = img.shape[0]  # shape(h,w,c)
         width = img.shape[1]
 
-        # Center
-        C = np.eye(3)
-        C[0, 2] = -img.shape[1] / 2  # x translation (pixels)
-        C[1, 2] = -img.shape[0] / 2  # y translation (pixels)
+        while True:
+            # Center
+            C = np.eye(3)
+            C[0, 2] = -img.shape[1] / 2  # x translation (pixels)
+            C[1, 2] = -img.shape[0] / 2  # y translation (pixels)
 
-        # Perspective
-        P = np.eye(3)
-        P[2, 0] = random.uniform(-self.perspective, self.perspective)  # x perspective (about y)
-        P[2, 1] = random.uniform(-self.perspective, self.perspective)  # y perspective (about x)
+            # Perspective
+            P = np.eye(3)
+            P[2, 0] = random.uniform(-self.perspective, self.perspective)  # x perspective (about y)
+            P[2, 1] = random.uniform(-self.perspective, self.perspective)  # y perspective (about x)
 
-        # Rotation and Scale
-        R = np.eye(3)
-        a = random.uniform(-self.degrees, self.degrees)
-        # a += random.choice([-180, -90, 0, 90])  # add 90deg rotations to small rotations
-        s = random.uniform(1 - self.scale, 1.1 + self.scale)
-        # s = 2 ** random.uniform(-scale, scale)
-        R[:2] = cv2.getRotationMatrix2D(angle=a, center=(0, 0), scale=s)
+            # Rotation and Scale
+            R = np.eye(3)
+            a = random.uniform(-self.degrees, self.degrees)
+            # a += random.choice([-180, -90, 0, 90])  # add 90deg rotations to small rotations
+            s = random.uniform(1 - self.scale, 1.1 + self.scale)
+            # s = 2 ** random.uniform(-scale, scale)
+            R[:2] = cv2.getRotationMatrix2D(angle=a, center=(0, 0), scale=s)
 
-        # Shear
-        S = np.eye(3)
-        S[0, 1] = math.tan(random.uniform(-self.shear, self.shear) * math.pi / 180)  # x shear (deg)
-        S[1, 0] = math.tan(random.uniform(-self.shear, self.shear) * math.pi / 180)  # y shear (deg)
+            # Shear
+            S = np.eye(3)
+            S[0, 1] = math.tan(random.uniform(-self.shear, self.shear) * math.pi / 180)  # x shear (deg)
+            S[1, 0] = math.tan(random.uniform(-self.shear, self.shear) * math.pi / 180)  # y shear (deg)
 
-        # Translation
-        T = np.eye(3)
-        T[0, 2] = random.uniform(0.5 - self.translate, 0.5 + self.translate) * width  # x translation (pixels)
-        T[1, 2] = random.uniform(0.5 - self.translate, 0.5 + self.translate) * height  # y translation (pixels)
+            # Translation
+            T = np.eye(3)
+            T[0, 2] = random.uniform(0.5 - self.translate, 0.5 + self.translate) * width  # x translation (pixels)
+            T[1, 2] = random.uniform(0.5 - self.translate, 0.5 + self.translate) * height  # y translation (pixels)
 
-        # Combined rotation matrix
-        M = T @ S @ R @ P @ C  # order of operations (right to left) is IMPORTANT
-        img = cv2.warpAffine(img, M[:2], dsize=(width, height), borderValue=self.background)
+            # Combined rotation matrix
+            M = T @ S @ R @ P @ C  # order of operations (right to left) is IMPORTANT
+            img_new = cv2.warpAffine(img, M[:2], dsize=(width, height), borderValue=self.background)
 
-        label_new = []
-        boxes_new = []
-        # Transform label coordinates
-        for idx, box in enumerate(boxes):
-            x1 = (box[0] - (box[2] / 2.0)) * width
-            x2 = (box[0] + (box[2] / 2.0)) * width
-            y1 = (box[1] - (box[3] / 2.0)) * height
-            y2 = (box[1] + (box[3] / 2.0)) * height
+            label_new = []
+            boxes_new = []
+            # Transform label coordinates
+            for idx, box in enumerate(boxes):
+                x1 = (box[0] - (box[2] / 2.0)) * width
+                x2 = (box[0] + (box[2] / 2.0)) * width
+                y1 = (box[1] - (box[3] / 2.0)) * height
+                y2 = (box[1] + (box[3] / 2.0)) * height
+                
+                w_origin = (x2 - x1) / width
+                h_origin = (y2 - y1) / height
+                
+                xy = [[x1, y1, 1], [x2, y1, 1], [x2, y2, 1], [x1, y2, 1]]
+                
+                xy = xy @ M.T  # transform
+                xy = xy[:, :2] / xy[:, 2:3]
+
+                # create new boxes
+                x = xy[:, 0]
+                y = xy[:, 1]
+                
+                x = np.clip(x, 0, width)
+                y = np.clip(y, 0, height)
+
+                x1 = x.min(0)
+                x2 = x.max(0)
+                y1 = y.min(0)
+                y2 = y.max(0)
+                
+                cx = (x1 + x2) / 2.0 / width
+                cy = (y1 + y2) / 2.0 / height
+                w = (x2 - x1) / width
+                h = (y2 - y1) / height
+                
+                if (w_origin * 0.5) > w or (h_origin * 0.5) > h:
+                    continue
+                
+                label_new.append(label[idx])
+                boxes_new.append([cx, cy, w, h])
             
-            w_origin = (x2 - x1) / width
-            h_origin = (y2 - y1) / height
-            
-            xy = [[x1, y1, 1], [x2, y1, 1], [x2, y2, 1], [x1, y2, 1]]
-            
-            xy = xy @ M.T  # transform
-            xy = xy[:, :2] / xy[:, 2:3]
-
-            # create new boxes
-            x = xy[:, 0]
-            y = xy[:, 1]
-            
-            x = np.clip(x, 0, width)
-            y = np.clip(y, 0, height)
-
-            x1 = x.min(0)
-            x2 = x.max(0)
-            y1 = y.min(0)
-            y2 = y.max(0)
-            
-            cx = (x1 + x2) / 2.0 / width
-            cy = (y1 + y2) / 2.0 / height
-            w = (x2 - x1) / width
-            h = (y2 - y1) / height
-            
-            if (w_origin * 0.5) > w or (h_origin * 0.5) > h:
+            if len(label_new) == 0 or len(boxes_new) == 0:
                 continue
-            
-            label_new.append(label[idx])
-            boxes_new.append([cx, cy, w, h])
 
-        return img, label_new, boxes_new
+            return img_new, label_new, boxes_new
 
 class mosaic(object):
     def __init__(self, canvas_range=1.0, p=0.5):

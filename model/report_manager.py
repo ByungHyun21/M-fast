@@ -78,6 +78,9 @@ class report_manager():
         model.eval()
         model.model.eval()
         for sample_dir in sample_dirs:
+            if not os.path.isdir(os.path.join('sample', sample_dir)):
+                continue
+            
             img_list = os.listdir(os.path.join('sample', sample_dir))
             
             wandb_images = []

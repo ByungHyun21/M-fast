@@ -133,10 +133,10 @@ class ssd_vgg16(nn.Module):
             state_dict = self.state_dict()
             param_names = list(state_dict.keys())
 
-            pretrained_dict = torchvision.models.vgg16_bn(pretrained=True).state_dict()
+            pretrained_dict = torchvision.models.vgg16_bn(weights=torchvision.models.VGG16_BN_Weights.DEFAULT).state_dict()
             pretrained_names = list(pretrained_dict.keys())
 
-            for i, name in enumerate(param_names[1:]): # exclude [0] = rescale_factor
+            for i, name in enumerate(param_names[1:]): # exclude [0]는 rescale_factor임. weight loading에서 제외
                 if 'backbone' in name or 'extra_1' in name:
                     # print(name, '<', pretrained_names[i])
                     state_dict[name] = pretrained_dict[pretrained_names[i]]

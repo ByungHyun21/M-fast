@@ -57,8 +57,20 @@ def train(rank:int, config:dict):
 
     # TODO: 옵티마이저를 네트워크마다 다르게 설정할 필요가 있음, Config 파일에 옵티마이저 설정 추가
     lr0 = config['LR'] * config['BATCH_SIZE_MULTI_GPU'] / 32 # batch size 64
+
+    biases = list()
+    not_biases = list()
+    for param_name, param in model.model.named_parameters():
+            if param.requires_grad:
+                if param_name.endswith('.bias'):
+                    biases.append(param)
+                else:
+                    not_biases.append(param)
+
     # optimizer = optim.Adam(model.parameters(), lr=lr0, betas=(0.9, 0.999), weight_decay=config['WEIGHT_DECAY'])
-    optimizer = optim.SGD(model.model.parameters(), lr=lr0, momentum=0.9, weight_decay=config['WEIGHT_DECAY'])
+    # optimizer = optim.SGD(model.model.parameters(), lr=lr0, momentum=0.9, weight_decay=config['WEIGHT_DECAY'])
+    optimizer = torch.optim.SGD(params=[{'params': biases, 'lr': 2 * lr0}, {'params': not_biases}],
+                                lr=lr0, momentum=0.9, weight_decay=config['WEIGHT_DECAY'])
     optimizer.zero_grad()
     
     def custom_scheduler(step):
@@ -209,7 +221,7 @@ if __name__ == '__main__':
     opt.voc = True
     # opt.wandb = 'byunghyun'
     # opt.dataset_path = 'C:\dataset'
-    opt.dataset_path = 'C:\\Users\\dqg06\\Desktop'
+    # opt.dataset_path = 'C:\\Users\\dqg06\\Desktop'
     
     assert opt.config is not None, 'config is not defined'
     assert opt.coco or opt.voc or opt.crowdhuman or opt.argoseye, 'dataset is not defined'
