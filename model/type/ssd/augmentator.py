@@ -19,6 +19,15 @@ class augmentator(object):
         perspective_shear = config['PERSPECTIVE_SHEAR']
         perspective_perspective = config['PERSPECTIVE_PERSPECTIVE']
 
+        random_crop_prob = config['RANDOM_CROP_PROB']
+        random_crop_min_overlap = config['RANDOM_CROP_MIN_OVERLAP']
+        
+        random_zoomout_prob = config['RANDOM_ZOOMOUT_PROB']
+        random_zoomout_max_scale = config['RANDOM_ZOOMOUT_MAX_SCALE']
+
+        mean = config['MEAN']
+        std = config['STD']
+
         self.transform_train = [
             # photometric
             augment_hsv(hgain=hsv_hgain, sgain=hsv_sgain, vgain=hsv_vgain, p=hsv_prob),
@@ -27,12 +36,14 @@ class augmentator(object):
             Resize(input_size),
 
             # geometric
+            RandomZoomOut(max_scale=random_zoomout_max_scale, mean=mean, p=random_zoomout_prob),
+            RandomCrop(min_overlap=random_crop_min_overlap, p=random_crop_prob),
             mosaic(canvas_range=mosaic_canvas_range, p=mosaic_prob),
             random_perspective(degree=perspective_degree, translate=perspective_translate, scale=perspective_scale, shear=perspective_shear, perspective=perspective_perspective, p=perspective_prob),
-
+            
+            RandomVFlip(p=0.5),
             # resize
             Resize(input_size),
-            RandomVFlip(p=0.5),
             ]
 
         self.transform_valid = [

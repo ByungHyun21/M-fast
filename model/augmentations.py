@@ -24,307 +24,122 @@ class Resize(object):
         img = cv2.resize(img, (self.imw, self.imh))
         
         return img, label, boxes
-
-class rgb2gray(object):
-    def __init__(self, p=0.5):
-        self.p = p
-        
-    def __call__(self, img, label, boxes):
-        if random.random() > self.p:
-            return img, label, boxes
-        
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-        return img, label, boxes
-
-class RandomNoiseGaussian(object):
-    def __init__(self, mean=0.01, variance=0.01, p=0.5):
-        self.p = p
-        self.mean = mean
-        self.variance = variance
-        self.sigma = self.variance ** 0.5
-        
-    def __call__(self, img, label, boxes):
-        # img: 300x300x3 rgb (0~1)
-        # label: [label, label, ... ], list of label (not one hot encoding)
-        # box: [[cx, cy, w, h], [cx, cy, w, h], ... ], list of box (0~1)
-        
-        if random.random() > self.p:
-            return img, label, boxes
-        
-        h, w, c = img.shape
-        mean = self.mean * random.random()
-        variance = self.variance * random.random()
-        
-        gaussnoise = np.random.normal(mean, variance, (h, w, c))
-        gauss = gaussnoise.reshape(h, w, c)
-        img = img + gauss
-        
-        img = np.clip(img, 0, 1)
-
-        return img, label, boxes
-
-class blurring(object):
-    def __init__(self, patch_size=3, p=0.5):
-        self.p = p
-        self.patch_size = patch_size
-        
-    def __call__(self, img, label, boxes):
-        # img: 300x300x3 rgb (0~1)
-        # label: [label, label, ... ], list of label (not one hot encoding)
-        # box: [[cx, cy, w, h], [cx, cy, w, h], ... ], list of box (0~1)
-        if random.random() > self.p:
-            return img, label, boxes
-        
-        kernel = np.ones((self.patch_size, self.patch_size), np.float32) / (self.patch_size ** 2)
-        img = cv2.filter2D(img, -1, kernel)
-        
-        return img, label, boxes
-
-class sharpening(object):
-    def __init__(self, p):
-        self.p = p
-        
-    def __call__(self, img, label, boxes):
-        # img: 300x300x3 rgb (0~1)
-        # label: [label, label, ... ], list of label (not one hot encoding)
-        # box: [[cx, cy, w, h], [cx, cy, w, h], ... ], list of box (0~1)
-        if random.random() > self.p:
-            return img, label, boxes
-        
-        kernel = np.array([[-1, -1, -1], [-1, 9, -1], [-1, -1, -1]])
-        img = cv2.filter2D(img, -1, kernel)
-        
-        return img, label, boxes
-
-class RandomZoomIn(object):
-    def __init__(self, p, zoom_range):
-        """
-        zoom_range 0.1 -> 10% zoom (270x270 -> 300x300)
-        zoom_range 0.5 -> 50% zoom (150x150 -> 300x300)
-        """
-        self.p = p
-        self.zoom_range = zoom_range
-        
-    def __call__(self, img, label, boxes):
-        if random.random() > self.p:
-            return img, label, boxes
-        
-        im_h, im_w, _ = img.shape
-        
-        xmin = 1
-        xmax = 0
-        ymin = 1
-        ymax = 0
-        for box in boxes:
-            cx = box[0]
-            cy = box[1]
-            w = box[2]
-            h = box[3]
-            
-            x1 = cx - (w / 2.0)
-            x2 = cx + (w / 2.0)
-            y1 = cy - (h / 2.0)
-            y2 = cy + (h / 2.0)
-            
-            xmin = min(xmin, x1)
-            xmax = max(xmax, x2)
-            ymin = min(ymin, y1)
-            ymax = max(ymax, y2)
-        
-        xmin = max(min(xmin, 1), 0)
-        xmax = max(min(xmax, 1), 0)
-        ymin = max(min(ymin, 1), 0)
-        ymax = max(min(ymax, 1), 0)
-
-        crop_x1 = int((random.random() * self.zoom_range) * xmin * im_w)
-        crop_x2 = int(((1 - random.random() * self.zoom_range) * (1 - xmax) + xmax) * im_w)
-        crop_y1 = int((random.random() * self.zoom_range) * ymin * im_h)
-        crop_y2 = int(((1 - random.random() * self.zoom_range) * (1 - ymax) + ymax) * im_h)
-
-        img = img[crop_y1:crop_y2, crop_x1:crop_x2, :]
-        
-        crop_w = crop_x2 - crop_x1
-        crop_h = crop_y2 - crop_y1
-        
-        size_w = im_w / crop_w
-        size_h = im_h / crop_h
-        size_x1 = crop_x1 / im_w
-        size_y1 = crop_y1 / im_h
-        
-        newboxes = []
-        for box in boxes:
-            cx = box[0]
-            cy = box[1]
-            w = box[2]
-            h = box[3]
-            
-            new_w = w * size_w
-            new_h = h * size_h
-            new_cx = (cx - size_x1) * size_w
-            new_cy = (cy - size_y1) * size_h
-            
-            newboxes.append([new_cx, new_cy, new_w, new_h])
-            
-        boxes = newboxes
-        
-        return img, label, boxes
     
 class RandomZoomOut(object):
-    def __init__(self, p, zoom_range):
-        """
-        zoom_range 0.1 -> 330x330 -> 300x300
-        zoom_range 0.5 -> 450x450 -> 300x300
-        """
+    def __init__(self, max_scale, mean, p):
         self.p = p
-        self.zoom_range = zoom_range
-        
+        self.mean = mean
+        self.max_scale = max_scale
+
     def __call__(self, img, label, boxes):
-        # img: 300x300x3 rgb (0~1)
-        # label: [label, label, ... ], list of label (not one hot encoding)
-        # box: [[cx, cy, w, h], [cx, cy, w, h], ... ], list of box (0~1)
         if random.random() > self.p:
             return img, label, boxes
         
-        im_h, im_w, im_c = img.shape
-        img_new = np.ones((im_h, im_w, im_c), dtype=np.float32) * Background_color
+        original_h, original_w, _ = img.shape
+        scale = random.uniform(1, self.max_scale)
+        new_w = int(original_w * scale)
+        new_h = int(original_h * scale)
 
-        zoom_range_w = 1 - random.random() * self.zoom_range
-        zoom_range_h = 1 - random.random() * self.zoom_range
-        
-        zoomout_w = min(int(im_w * zoom_range_w), im_w)
-        zoomout_h = min(int(im_h * zoom_range_h), im_h)
+        background = np.zeros((new_h, new_w, 3), dtype=np.uint8) + np.multiply(self.mean, 255).astype(np.uint8)
 
-        img_mask = cv2.resize(np.array(img, dtype=np.float32),
-                              dsize=(zoomout_w, zoomout_h))
+        left = int(random.uniform(0, new_w - original_w))
+        right = left + original_w
+        top = int(random.uniform(0, new_h - original_h))
+        bottom = top + original_h
         
-        im_h_mask, im_w_mask, _ = img_mask.shape
-        ratio_h = im_h_mask / im_h
-        ratio_w = im_w_mask / im_w
-        
-        sx = int(random.random() * (1 - ratio_w) * im_w)
-        sy = int(random.random() * (1 - ratio_h) * im_h)
+        background[top:bottom, left:right, :] = img
 
-        # sx = int(0 * (1 - ratio_w) * im_w)
-        # sy = int(0 * (1 - ratio_h) * im_h)
+        for i in range(len(boxes)):
+            # cx, cy, w, h -> x1, y1, x2, y2
+            x1 = (boxes[i][0] - boxes[i][2] / 2.0) * original_w
+            y1 = (boxes[i][1] - boxes[i][3] / 2.0) * original_h
+            x2 = (boxes[i][0] + boxes[i][2] / 2.0) * original_w
+            y2 = (boxes[i][1] + boxes[i][3] / 2.0) * original_h
 
-        img_new[sy:sy+im_h_mask, sx:sx+im_w_mask, :] = img_mask
-        
-        new_boxes = []
-        for box in boxes:
-            w = box[2] * ratio_w
-            h = box[3] * ratio_h
-            cx = box[0] * ratio_w + sx / im_w
-            cy = box[1] * ratio_h + sy / im_h
-            
-            new_boxes.append([cx, cy, w, h])
-        
-        img = img_new
-        boxes = new_boxes
-        
+            # transform 
+            x1 = x1 + left
+            y1 = y1 + top
+            x2 = x2 + left
+            y2 = y2 + top
+
+            # x1, y1, x2, y2 -> cx, cy, w, h
+            boxes[i][0] = (x1 + x2) / 2.0 / new_w
+            boxes[i][1] = (y1 + y2) / 2.0 / new_h
+            boxes[i][2] = (x2 - x1) / new_w
+            boxes[i][3] = (y2 - y1) / new_h
+
+        img = cv2.resize(background, (original_w, original_h))
+
         return img, label, boxes
-
-class RandomRotation(object):
-    def __init__(self, degree=5, p=0.5):
+    
+class RandomCrop(object):
+    # 기능상 Random zoom in과 동일
+    def __init__(self, min_overlap, p):
+        self.min_overlap = min_overlap
         self.p = p
-        self.degree = degree
-        
+
     def __call__(self, img, label, boxes):
-        # img: 300x300x3 rgb (0~1)
-        # label: [label, label, ... ], list of label (not one hot encoding)
-        # box: [[cx, cy, w, h], [cx, cy, w, h], ... ], list of box (0~1)
         if random.random() > self.p:
             return img, label, boxes
         
-        rot_deg = random.random() * 2 * self.degree - self.degree
-        
-        im_h, im_w, _ = img.shape
-        im_cx = im_w // 2
-        im_cy = im_h // 2
-        
-        rot_matrix = cv2.getRotationMatrix2D((im_cx, im_cy), -rot_deg, 1.0)
-        img = cv2.warpAffine(img, rot_matrix, (im_w, im_h), 
-                            borderMode=cv2.BORDER_CONSTANT, borderValue=Background_color)
-        for idx, box in enumerate(boxes):
-            x1 = box[0] - box[2] / 2
-            y1 = box[1] - box[3] / 2
-            x2 = box[0] + box[2] / 2
-            y2 = box[1] + box[3] / 2
+        original_h, original_w, _ = img.shape
+
+        max_trials = 50
+        for _ in range(max_trials):
+            crop_w = random.uniform(0.3, 1) * original_w
+            crop_h = random.uniform(0.3, 1) * original_h
+
+            aspect_ratio = crop_h / crop_w
+            if aspect_ratio < 0.5 or aspect_ratio > 2:
+                continue
+
+            left = random.uniform(0, original_w - crop_w)
+            top = random.uniform(0, original_h - crop_h)
+
+            new_label = []
+            new_boxes = []
+            for idx, box in enumerate(boxes):
+                # cx, cy, w, h -> x1, y1, x2, y2
+                x1_origin = (box[0] - box[2] / 2.0) * original_w
+                y1_origin = (box[1] - box[3] / 2.0) * original_h
+                x2_origin = (box[0] + box[2] / 2.0) * original_w
+                y2_origin = (box[1] + box[3] / 2.0) * original_h
+
+                x1 = max(x1_origin, left)
+                y1 = max(y1_origin, top)
+                x2 = min(x2_origin, left + crop_w)
+                y2 = min(y2_origin, top + crop_h)
+
+                if x2 < x1 or y2 < y1:
+                    continue
+                
+                overlap_area = (x2 - x1) * (y2 - y1)
+                box_area = (x2_origin - x1_origin) * (y2_origin - y1_origin)
+                iou = overlap_area / box_area
+
+                if iou >= self.min_overlap:
+                    # x1, y1, x2, y2 -> cx, cy, w, h
+                    new_x1 = (x1 - left)
+                    new_y1 = (y1 - top)
+                    new_x2 = (x2 - left)
+                    new_y2 = (y2 - top)
+
+                    new_cx = (new_x1 + new_x2) / 2.0 / crop_w
+                    new_cy = (new_y1 + new_y2) / 2.0 / crop_h
+                    new_w = (new_x2 - new_x1) / crop_w
+                    new_h = (new_y2 - new_y1) / crop_h
+
+                    new_label.append(label[idx])
+                    new_boxes.append([new_cx, new_cy, new_w, new_h])
             
-            xmin = 1
-            xmax = 0
-            ymin = 1
-            ymax = 0
-            points = [[x1, y1], [x1, y2], [x2, y1], [x2, y2]]
-            for p in points:
-                angle = math.radians(rot_deg)
-                x_ = 0.5 + math.cos(angle) * (p[0] - 0.5) - math.sin(angle) * (p[1] - 0.5)
-                y_ = 0.5 + math.sin(angle) * (p[0] - 0.5) + math.cos(angle) * (p[1] - 0.5)
-                xmin = min(xmin, x_)
-                xmax = max(xmax, x_)
-                ymin = min(ymin, y_)
-                ymax = max(ymax, y_)
-            
-            xmin = max(min(xmin, 1), 0)
-            xmax = max(min(xmax, 1), 0)
-            ymin = max(min(ymin, 1), 0)
-            ymax = max(min(ymax, 1), 0)
-            
-            w_ = max(min(xmax - xmin, 1), 1e-5)
-            h_ = max(min(ymax - ymin, 1), 1e-5)
-            cx_ = max(min((xmax + xmin) / 2, 1-1e-5), 1e-5)
-            cy_ = max(min((ymax + ymin) / 2, 1-1e-5), 1e-5)
-            
-            boxes[idx] = [cx_, cy_, w_, h_]
-        
+            if len(new_boxes) > 0:
+                new_img = img[int(top):int(top + crop_h), int(left):int(left + crop_w), :]
+                new_img = cv2.resize(new_img, (original_w, original_h))
+                return new_img, new_label, new_boxes
+
         return img, label, boxes
-
-class Random90Rotation(object):
-    def __init__(self, d0=True, d90=True, d180=True, d270=True, p=0.5):
-        self.p = p
-        self.degree = [d0, d90, d180, d270]
         
-    def __call__(self, img, label, boxes):
-        idx = random.randint(0, 3)
         
-        if self.degree[idx] and idx == 0:
-            # 0 degree
-            return img, label, boxes
-        if self.degree[idx] and idx == 1:
-            # 90 degree (clockwise)
-            img = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
-            for i, box in enumerate(boxes):
-                cx = 1 - box[1]
-                cy = box[0]
-                w = box[3]
-                h = box[2]
-                
-                boxes[i] = [cx, cy, w, h]
-            return img, label, boxes
-        if self.degree[idx] and idx == 2:
-            # 180 degree (clockwise)
-            img = cv2.rotate(img, cv2.ROTATE_180)
-            for i, box in enumerate(boxes):
-                cx = 1 - box[0]
-                cy = 1 - box[1]
-                w = box[2]
-                h = box[3]
-                
-                boxes[i] = [cx, cy, w, h]
-            return img, label, boxes
-        if self.degree[idx] and idx == 3:
-            # 270 degree (clockwise)
-            img = cv2.rotate(img, cv2.ROTATE_90_COUNTERCLOCKWISE)
-            for i, box in enumerate(boxes):
-                cx = box[1]
-                cy = 1 - box[0]
-                w = box[3]
-                h = box[2]
-                
-                boxes[i] = [cx, cy, w, h]
-            
-            return img, label, boxes
-
 class RandomVFlip(object):
     def __init__(self, p):
         self.p = p
@@ -656,6 +471,16 @@ if __name__ == "__main__":
             perspective_shear = config['PERSPECTIVE_SHEAR']
             perspective_perspective = config['PERSPECTIVE_PERSPECTIVE']
 
+            random_crop_prob = config['RANDOM_CROP_PROB']
+            random_crop_min_overlap = config['RANDOM_CROP_MIN_OVERLAP']
+            
+            random_zoomout_prob = config['RANDOM_ZOOMOUT_PROB']
+            random_zoomout_max_scale = config['RANDOM_ZOOMOUT_MAX_SCALE']
+            
+
+            mean = config['MEAN']
+            std = config['STD']
+
             self.transform = [
                 # photometric
                 augment_hsv(hgain=hsv_hgain, sgain=hsv_sgain, vgain=hsv_vgain, p=hsv_prob),
@@ -664,11 +489,15 @@ if __name__ == "__main__":
                 Resize(input_size),
 
                 # geometric
+                RandomZoomOut(max_scale=random_zoomout_max_scale, mean=mean, p=random_zoomout_prob),
+                RandomCrop(min_overlap=random_crop_min_overlap, p=random_crop_prob),
                 mosaic(canvas_range=mosaic_canvas_range, p=mosaic_prob),
                 random_perspective(degree=perspective_degree, translate=perspective_translate, scale=perspective_scale, shear=perspective_shear, perspective=perspective_perspective, p=perspective_prob),
-
+                
+                RandomVFlip(p=0.5),
                 # resize
                 Resize(input_size),
+                
                 ]
 
                 
@@ -685,37 +514,72 @@ if __name__ == "__main__":
               'HSV_VGAIN': 0.4,
               'MOSAIC_PROB': 1.0,
               'MOSAIC_CANVAS_RANGE': 1.0,
-              'PERSPECTIVE_PROB': 1.0,
+              'PERSPECTIVE_PROB': 0.0,
               'PERSPECTIVE_DEGREE': 10,
               'PERSPECTIVE_TRANSLATE': 0.1,
               'PERSPECTIVE_SCALE': 0.1,
               'PERSPECTIVE_SHEAR': 2.0,
-              'PERSPECTIVE_PERSPECTIVE': 0.0,}
+              'PERSPECTIVE_PERSPECTIVE': 0.0,
+              
+              'RANDOM_ZOOMOUT_PROB': 0.0,
+              'RANDOM_ZOOMOUT_MAX_SCALE': 4.0,
+
+              'RANDOM_CROP_PROB': 1.0,
+              'RANDOM_CROP_MIN_OVERLAP': 0.3,
+
+              'MEAN': [0.485, 0.456, 0.406],
+              'STD': [0.229, 0.224, 0.225]}
+    
     aug = augmentator(config)
     
+    cnt = 0
     while True:
-        img = cv2.imread('sample/augmentation_test_sample.jpg')
-        labels = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 3, 3]
-        boxes = [
-                [0.587203125, 0.29015625, 0.08225, 0.0856875],
-                [0.127765625, 0.6070520833333333, 0.09259375, 0.44277083333333334],
-                [0.3613828125, 0.53690625, 0.149640625, 0.5682291666666667],
-                [0.7106171875, 0.34918750000000004, 0.13764062500000002, 0.2524166666666667],
-                [0.5806171874999999, 0.6483125, 0.129765625, 0.6539166666666667],
-                [0.6641718750000001, 0.6656979166666666, 0.1381875, 0.6651041666666667],
-                [0.730703125, 0.71721875, 0.17953125, 0.5655625000000001],
-                [0.8942734375000001, 0.6999479166666667, 0.21145312500000002, 0.6001041666666667],
-                [0.4047578124999999, 0.6232916666666667, 0.155671875, 0.5189166666666667],
-                [0.48404687499999993, 0.52875, 0.1389375, 0.6580833333333334],
-                [0.6632734375, 0.2982916666666667, 0.058015625, 0.09483333333333334],
-                [0.2449609375, 0.5548645833333333, 0.130046875, 0.47585416666666663],
-                [0.3625625, 0.58984375, 0.10978125000000001, 0.24489583333333334],
-                [0.07372656250000001, 0.5989062500000001, 0.083265625, 0.2531875],
-                [0.1106015625, 0.7226041666666667, 0.074109375, 0.18191666666666664],
-                [0.11028906249999999, 0.5195416666666667, 0.08707812499999999, 0.10620833333333332],
-                [0.37609375, 0.40187500000000004, 0.09753125, 0.12091666666666666]
-        ]
-        
+        if cnt % 2 == 0:
+            img = cv2.imread('sample/augmentation_test_sample.jpg')
+            labels = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 3, 3]
+            boxes = [
+                    [0.587203125, 0.29015625, 0.08225, 0.0856875],
+                    [0.127765625, 0.6070520833333333, 0.09259375, 0.44277083333333334],
+                    [0.3613828125, 0.53690625, 0.149640625, 0.5682291666666667],
+                    [0.7106171875, 0.34918750000000004, 0.13764062500000002, 0.2524166666666667],
+                    [0.5806171874999999, 0.6483125, 0.129765625, 0.6539166666666667],
+                    [0.6641718750000001, 0.6656979166666666, 0.1381875, 0.6651041666666667],
+                    [0.730703125, 0.71721875, 0.17953125, 0.5655625000000001],
+                    [0.8942734375000001, 0.6999479166666667, 0.21145312500000002, 0.6001041666666667],
+                    [0.4047578124999999, 0.6232916666666667, 0.155671875, 0.5189166666666667],
+                    [0.48404687499999993, 0.52875, 0.1389375, 0.6580833333333334],
+                    [0.6632734375, 0.2982916666666667, 0.058015625, 0.09483333333333334],
+                    [0.2449609375, 0.5548645833333333, 0.130046875, 0.47585416666666663],
+                    [0.3625625, 0.58984375, 0.10978125000000001, 0.24489583333333334],
+                    [0.07372656250000001, 0.5989062500000001, 0.083265625, 0.2531875],
+                    [0.1106015625, 0.7226041666666667, 0.074109375, 0.18191666666666664],
+                    [0.11028906249999999, 0.5195416666666667, 0.08707812499999999, 0.10620833333333332],
+                    [0.37609375, 0.40187500000000004, 0.09753125, 0.12091666666666666]
+            ]
+            cnt = 0
+        else:
+            img = cv2.imread('sample/augmentation_test_sample_2.jpg')
+            labels = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 4]
+            boxes = [
+                    [0.1434, 0.6993693693693694, 0.22003999999999999, 0.5467267267267267],
+                    [0.15138, 0.33708708708708707, 0.10636, 0.18852852852852853],
+                    [0.08592, 0.3695945945945946, 0.10164, 0.1569069069069069],
+                    [0.11599, 0.021351351351351352, 0.07334, 0.042702702702702704],
+                    [0.47817, 0.31012012012012014, 0.0943, 0.16180180180180181],
+                    [0.8623999999999999, 0.26076576576576577, 0.17628, 0.16051051051051052],
+                    [0.39127, 0.30890390390390393, 0.10526, 0.17084084084084084],
+                    [0.24067, 0.3182432432432432, 0.13306, 0.2074174174174174],
+                    [0.32852, 0.7648348348348348, 0.30760000000000004, 0.42150150150150156],
+                    [0.61075, 0.5626576576576577, 0.19413999999999998, 0.6995495495495495],
+                    [0.29982, 0.3328978978978979, 0.01064, 0.047177177177177176],
+                    [0.45612, 0.7415615615615615, 0.0576, 0.09933933933933933],
+                    [0.6659400000000001, 0.18978978978978978, 0.12448000000000001, 0.2094294294294294],
+                    [0.76038, 0.32566066066066063, 0.15708000000000003, 0.06363363363363364],
+                    [0.33015, 0.3766516516516517, 0.10729999999999999, 0.056726726726726726]
+            ]
+
+        cnt += 1
+
         img, labels, boxes = aug(img, labels, boxes)
         img = cv2.resize(img, (600, 600))
         h, w, _ = img.shape
