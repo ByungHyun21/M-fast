@@ -20,8 +20,8 @@ class ssd_vgg16(nn.Module):
         
         anchor_n = config['ANCHOR_N']
         
-        # self.mean = torch.reshape(torch.tensor(config['MEAN'], device=self.ddp_rank), (1, -1, 1, 1))
-        # self.std = torch.reshape(torch.tensor(config['STD'], device=self.ddp_rank), (1, -1, 1, 1))
+        self.mean = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1).to(self.device)
+        self.std = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1).to(self.device)
         
         self.backbone = nn.Sequential(
             # Conv 1
@@ -89,8 +89,10 @@ class ssd_vgg16(nn.Module):
         self.load_pretrained_weights()
 
     def forward(self, x):
-        x = (x / 128.0) - 1.0
-        # x = (x - self.mean) / self.std
+        # x = (x / 128.0) - 1.0
+        
+        x = x / 255.0
+        x = (x - self.mean) / self.std
         
         x = self.backbone(x)
         

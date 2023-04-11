@@ -72,8 +72,8 @@ def get_anchor(fh, fw, n_anchor, s1, s2):
         
         # 3: 2x 1/2x
         # 1.4 1.61 1.82
-        aw = s1 * 1.4
-        ah = s1 / 1.4
+        aw = s1 * np.sqrt(2.0)
+        ah = s1 / np.sqrt(2.0)
         
         cw = np.tile(aw, (na, 1))
         ch = np.tile(ah, (na, 1))
@@ -81,17 +81,21 @@ def get_anchor(fh, fw, n_anchor, s1, s2):
         a3_2 = np.concatenate([cx, cy, ch, cw], axis=1)
         
         if n_anchor != 6:
-            anchors = np.concatenate([a1, a2, a3_1, a3_2], axis=0)
+            anchors = np.concatenate([a1, a2, a3_1, a3_2], axis=1)
+            anchors = np.reshape(anchors, (-1, 4))
+            anchors = np.clip(anchors, 0.0, 1.0)
             return anchors
         else: 
             # 4: 3x 1/3x
             # 1.7 1.95 2.2
-            aw = s1 * 1.7
-            ah = s1 / 1.7
+            aw = s1 * np.sqrt(3.0)
+            ah = s1 / np.sqrt(3.0)
             
             cw = np.tile(aw, (na, 1))
             ch = np.tile(ah, (na, 1))
             a4_1 = np.concatenate([cx, cy, cw, ch], axis=1)
             a4_2 = np.concatenate([cx, cy, ch, cw], axis=1)
-            anchors = np.concatenate([a1, a2, a3_1, a3_2, a4_1, a4_2], axis=0)
+            anchors = np.concatenate([a1, a2, a3_1, a3_2, a4_1, a4_2], axis=1)
+            anchors = np.reshape(anchors, (-1, 4))
+            anchors = np.clip(anchors, 0.0, 1.0)
             return anchors

@@ -68,9 +68,9 @@ def train(rank:int, config:dict):
                     not_biases.append(param)
 
     # optimizer = optim.Adam(model.parameters(), lr=lr0, betas=(0.9, 0.999), weight_decay=config['WEIGHT_DECAY'])
-    # optimizer = optim.SGD(model.model.parameters(), lr=lr0, momentum=0.9, weight_decay=config['WEIGHT_DECAY'])
-    optimizer = torch.optim.SGD(params=[{'params': biases, 'lr': 2 * lr0}, {'params': not_biases}],
-                                lr=lr0, momentum=0.9, weight_decay=config['WEIGHT_DECAY'])
+    optimizer = optim.SGD(model.model.parameters(), lr=lr0, momentum=0.9, weight_decay=config['WEIGHT_DECAY'])
+    # optimizer = torch.optim.SGD(params=[{'params': biases, 'lr': 2 * lr0}, {'params': not_biases}],
+    #                             lr=lr0, momentum=0.9, weight_decay=config['WEIGHT_DECAY'])
     optimizer.zero_grad()
     
     def custom_scheduler(step):
