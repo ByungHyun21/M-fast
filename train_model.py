@@ -218,7 +218,7 @@ if __name__ == '__main__':
     opt = parser.parse_args()
 
     #TODO: 테스트용
-    opt.voc = True
+    # opt.voc = True
     # opt.wandb = 'byunghyun'
     # opt.dataset_path = 'C:\dataset'
     # opt.dataset_path = 'C:\\Users\\dqg06\\Desktop'
