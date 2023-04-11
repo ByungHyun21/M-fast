@@ -99,7 +99,7 @@ python train_model.py --config {config 경로} --coco
 
 
 ### :small_blue_diamond: 지원하는 Dataset
-- [ ] VOC2007+2012 (PASCAL VOC, 20 classes)
+- [x] VOC2007+2012 (PASCAL VOC, 20 classes)
 - [x] COCO2017 (Common Objects in Context, 80 classes)
 - [x] Crowd Human (Crowd Human, 2 class)
 - [x] Argoseye (Argoseye, 1 class)
@@ -119,25 +119,37 @@ python train_model.py --config {config 경로} --coco
  - AP<sup>large</sup> : 0.7
 
 #### :radio_button: COCO2017 Dataset
-|Model|Size|pretrained|AP<sup>0.5:0.95</sup>|AP<sup>50</sup>|AP<sup>75</sup>|AP<sup>small</sup>|AP<sup>midium</sup>|AP<sup>large</sup>|
-|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-|YoloV1|-|-|-|-|-|-|-|-|
-|SSD|-|-|-|-|-|-|-|-|
+|Model|Backbone|Size|pretrained|AP<sup>0.5:0.95</sup>|AP<sup>50</sup>|AP<sup>75</sup>|AP<sup>small</sup>|AP<sup>midium</sup>|AP<sup>large</sup>|
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+|YoloV1|-|-|-|-|-|-|-|-|-|
+|SSD|VGG16|-|Imagenet|-|-|-|-|-|-|
+|SSD|Mobilenet-V1|-|Imagenet|-|-|-|-|-|-|
+|SSD|Mobilenet-V2|-|Imagenet|-|-|-|-|-|-|
+|SSD|Mobilenet-V3|-|Imagenet|-|-|-|-|-|-|
 
 #### :radio_button: VOC2007+2012 Dataset
-|Model|Size|pretrained|AP<sup>0.5:0.95</sup>|AP<sup>50</sup>|AP<sup>75</sup>|AP<sup>small</sup>|AP<sup>midium</sup>|AP<sup>large</sup>|
-|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-|YoloV1|-|-|-|-|-|-|-|-|
-|SSD|-|-|-|-|-|-|-|-|
+|Model|Backbone|Size|pretrained|AP<sup>0.5:0.95</sup>|AP<sup>50</sup>|AP<sup>75</sup>|AP<sup>small</sup>|AP<sup>midium</sup>|AP<sup>large</sup>|
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+|YoloV1|-|-|-|-|-|-|-|-|-|
+|SSD|VGG16|-|Imagenet|-|-|-|-|-|-|
+|SSD|Mobilenet-V1|-|Imagenet|-|-|-|-|-|-|
+|SSD|Mobilenet-V2|-|Imagenet|-|-|-|-|-|-|
+|SSD|Mobilenet-V3|-|Imagenet|-|-|-|-|-|-|
 
 #### :radio_button: CrowdHuman Dataset
-|Model|Size|pretrained|AP<sup>0.5:0.95</sup>|AP<sup>50</sup>|AP<sup>75</sup>|AP<sup>small</sup>|AP<sup>midium</sup>|AP<sup>large</sup>|
-|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-|YoloV1|-|-|-|-|-|-|-|-|
-|SSD|-|-|-|-|-|-|-|-|
+|Model|Backbone|Size|pretrained|AP<sup>0.5:0.95</sup>|AP<sup>50</sup>|AP<sup>75</sup>|AP<sup>small</sup>|AP<sup>midium</sup>|AP<sup>large</sup>|
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+|YoloV1|-|-|-|-|-|-|-|-|-|
+|SSD|VGG16|-|Imagenet|-|-|-|-|-|-|
+|SSD|Mobilenet-V1|-|Imagenet|-|-|-|-|-|-|
+|SSD|Mobilenet-V2|-|Imagenet|-|-|-|-|-|-|
+|SSD|Mobilenet-V3|-|Imagenet|-|-|-|-|-|-|
 
 #### :radio_button: Argoseye Dataset
-|Model|Size|pretrained|AP<sup>0.5:0.95</sup>|AP<sup>50</sup>|AP<sup>75</sup>|AP<sup>small</sup>|AP<sup>midium</sup>|AP<sup>large</sup>|
-|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-|YoloV1|-|-|-|-|-|-|-|-|
-|SSD|-|-|-|-|-|-|-|-|
+|Model|Backbone|Size|pretrained|AP<sup>0.5:0.95</sup>|AP<sup>50</sup>|AP<sup>75</sup>|AP<sup>small</sup>|AP<sup>midium</sup>|AP<sup>large</sup>|
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+|YoloV1|-|-|-|-|-|-|-|-|-|
+|SSD|VGG16|-|Imagenet|-|-|-|-|-|-|
+|SSD|Mobilenet-V1|-|Imagenet|-|-|-|-|-|-|
+|SSD|Mobilenet-V2|-|Imagenet|-|-|-|-|-|-|
+|SSD|Mobilenet-V3|-|Imagenet|-|-|-|-|-|-|
