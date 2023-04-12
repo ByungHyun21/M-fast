@@ -27,3 +27,5 @@ python train_model.py --config model/config/ssd/mobilenet_v2_voc.yaml --dataset_
 python train_model.py --config model/config/ssd/mobilenet_v2_voc_mosaic.yaml --dataset_path /dataset --wandb byunghyun --voc 
 python train_model.py --config model/config/ssd/mobilenet_v2_voc_perspective.yaml --dataset_path /dataset --wandb byunghyun --voc 
 python train_model.py --config model/config/ssd/mobilenet_v2_voc_hue.yaml --dataset_path /dataset --wandb byunghyun --voc 
+
+python train_model.py --config model/config/ssd/mobilenet_v2_voc.yaml --dataset_path /dataset --wandb byunghyun --voc 

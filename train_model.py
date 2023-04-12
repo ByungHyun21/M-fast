@@ -171,7 +171,14 @@ def train(rank:int, config:dict):
         
         if step >= config['STEPLR'][-1]:
             break
-        
+
+    if 'mAP' in config['METRIC']:
+        metric_mAP.reset()
+        mAPs = metric_mAP(rank, model)
+        if rank == 0:
+            manager.wandb_report(step, mAPs)
+            metric_mAP.print() 
+               
     dist.destroy_process_group()
         
     if 'mAP' in config['METRIC']:
