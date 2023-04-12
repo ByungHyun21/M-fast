@@ -14,7 +14,7 @@ class mAP(object):
         self.input_size = config['INPUT_SIZE']
         self.dataset_path = config['DATASET_PATH']
         
-    def set(self, dataset, category, dataset_class, model_class, mode='11point'):
+    def set(self, dataset, category, dataset_class, model_class, mode='101point'):
         self.dataset = dataset
         self.dataset_class = dataset_class
         self.model_class = model_class
@@ -23,7 +23,10 @@ class mAP(object):
         assert category is not None, "category is not set"
         assert self.dataset_class is not None, "dataset_class is not set"
         assert self.model_class is not None, "model_class is not set"
-        assert self.mode != '11point' or self.mode != 'all', "mode must be '11point' or 'all'"
+        assert self.mode != '11point' or self.mode != '101point' or self.mode != 'all', "mode must be '11point' or 'all'"
+        # 11point = PASCAL VOC
+        # 101point = COCO
+        # all = all points
         
         image_dir = Path(self.dataset_path) / self.dataset / Path('images_valid')
         label_dir = Path(self.dataset_path) / self.dataset / Path('annotations_valid')
@@ -35,7 +38,7 @@ class mAP(object):
                 label = str(label_dir / sub_dir / anno)
                 image = str(image_dir / sub_dir / anno.replace('.xml', '.jpg'))
                 data.append({'image':image, 'label':label})
-        
+        data = data[:10]
         #check dataset
         valid = np.ones(len(data)).astype(np.bool8)
         for idx, sample in enumerate(data):
@@ -53,19 +56,19 @@ class mAP(object):
         # mAP medium (object area > (1/6)^2) and (object area < (1/3)^2)
         # mAP large (object area > (1/3)^2))
         self.calculators = []
-        self.calculators.append(mAP_calculator(0, 1, 0.5, len(self.model_class), mode=mode))                   # mAP 0.5
-        self.calculators.append(mAP_calculator(0, 1, 0.55, len(self.model_class), mode=mode))                  # mAP 0.55
-        self.calculators.append(mAP_calculator(0, 1, 0.6, len(self.model_class), mode=mode))                   # mAP 0.6
-        self.calculators.append(mAP_calculator(0, 1, 0.65, len(self.model_class), mode=mode))                  # mAP 0.65
-        self.calculators.append(mAP_calculator(0, 1, 0.7, len(self.model_class), mode=mode))                   # mAP 0.7
-        self.calculators.append(mAP_calculator(0, 1, 0.75, len(self.model_class), mode=mode))                  # mAP 0.75
-        self.calculators.append(mAP_calculator(0, 1, 0.8, len(self.model_class), mode=mode))                   # mAP 0.8
-        self.calculators.append(mAP_calculator(0, 1, 0.85, len(self.model_class), mode=mode))                  # mAP 0.85
-        self.calculators.append(mAP_calculator(0, 1, 0.9, len(self.model_class), mode=mode))                   # mAP 0.9
-        self.calculators.append(mAP_calculator(0, 1, 0.95, len(self.model_class), mode=mode))                  # mAP 0.95
-        self.calculators.append(mAP_calculator(0, (1/6)**2, 0.5, len(self.model_class), mode=mode))            # mAP small
-        self.calculators.append(mAP_calculator((1/6)**2, (1/3)**2, 0.6, len(self.model_class), mode=mode))     # mAP medium
-        self.calculators.append(mAP_calculator((1/3)**2, 1, 0.7, len(self.model_class), mode=mode))            # mAP large
+        self.calculators.append(mAP_calculator(0, 1, 0.5, len(self.model_class), mode=self.mode))                   # mAP 0.5
+        self.calculators.append(mAP_calculator(0, 1, 0.55, len(self.model_class), mode=self.mode))                  # mAP 0.55
+        self.calculators.append(mAP_calculator(0, 1, 0.6, len(self.model_class), mode=self.mode))                   # mAP 0.6
+        self.calculators.append(mAP_calculator(0, 1, 0.65, len(self.model_class), mode=self.mode))                  # mAP 0.65
+        self.calculators.append(mAP_calculator(0, 1, 0.7, len(self.model_class), mode=self.mode))                   # mAP 0.7
+        self.calculators.append(mAP_calculator(0, 1, 0.75, len(self.model_class), mode=self.mode))                  # mAP 0.75
+        self.calculators.append(mAP_calculator(0, 1, 0.8, len(self.model_class), mode=self.mode))                   # mAP 0.8
+        self.calculators.append(mAP_calculator(0, 1, 0.85, len(self.model_class), mode=self.mode))                  # mAP 0.85
+        self.calculators.append(mAP_calculator(0, 1, 0.9, len(self.model_class), mode=self.mode))                   # mAP 0.9
+        self.calculators.append(mAP_calculator(0, 1, 0.95, len(self.model_class), mode=self.mode))                  # mAP 0.95
+        self.calculators.append(mAP_calculator(0, (1/6)**2, 0.5, len(self.model_class), mode=self.mode))            # mAP small
+        self.calculators.append(mAP_calculator((1/6)**2, (1/3)**2, 0.6, len(self.model_class), mode=self.mode))     # mAP medium
+        self.calculators.append(mAP_calculator((1/3)**2, 1, 0.7, len(self.model_class), mode=self.mode))            # mAP large
         
         self.mAP = {}
         
@@ -378,7 +381,7 @@ class mAP_calculator(object):
                 for i in range(len(pr_point[1:])):
                     # mAP : sum of (recall - previous_recall) * precision
                     self.mAP[idx] += (pr_point[i+1][0] - pr_point[i][0]) * pr_point[i+1][1]
-            elif self.mode == '11point':
+            elif self.mode == '11point': # Pascal VOC mAP
                 for i in range(11):
                     recall_min = i / 10
                     precision = 0
@@ -387,6 +390,15 @@ class mAP_calculator(object):
                             precision = max(precision, pr[1])
                         
                     self.mAP[idx] += precision / 11
+            elif self.mode == '101point': # COCO mAP
+                for i in range(101):
+                    recall_min = i / 100
+                    precision = 0
+                    for pr in pr_point[1:]:
+                        if pr[0] >= recall_min:
+                            precision = max(precision, pr[1])
+                        
+                    self.mAP[idx] += precision / 101
 
         
         count = 0

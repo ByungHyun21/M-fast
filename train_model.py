@@ -68,9 +68,9 @@ def train(rank:int, config:dict):
                     not_biases.append(param)
 
     # optimizer = optim.Adam(model.parameters(), lr=lr0, betas=(0.9, 0.999), weight_decay=config['WEIGHT_DECAY'])
-    optimizer = optim.SGD(model.model.parameters(), lr=lr0, momentum=0.9, weight_decay=config['WEIGHT_DECAY'])
-    # optimizer = torch.optim.SGD(params=[{'params': biases, 'lr': 2 * lr0}, {'params': not_biases}],
-    #                             lr=lr0, momentum=0.9, weight_decay=config['WEIGHT_DECAY'])
+    # optimizer = optim.SGD(model.model.parameters(), lr=lr0, momentum=0.9, weight_decay=config['WEIGHT_DECAY'])
+    optimizer = torch.optim.SGD(params=[{'params': biases, 'lr': 2 * lr0}, {'params': not_biases}],
+                                lr=lr0, momentum=0.9, weight_decay=config['WEIGHT_DECAY'])
     optimizer.zero_grad()
     
     def custom_scheduler(step):
@@ -178,7 +178,7 @@ def train(rank:int, config:dict):
         if rank == 0:
             manager.wandb_report(step, mAPs)
             metric_mAP.print() 
-               
+
     dist.destroy_process_group()
         
     if 'mAP' in config['METRIC']:
@@ -225,10 +225,10 @@ if __name__ == '__main__':
     opt = parser.parse_args()
 
     #TODO: 테스트용
-    # opt.voc = True
+    opt.voc = True
     # opt.wandb = 'byunghyun'
     # opt.dataset_path = 'C:\dataset'
-    # opt.dataset_path = 'C:\\Users\\dqg06\\Desktop'
+    opt.dataset_path = 'C:\\Users\\dqg06\\Desktop'
     
     assert opt.config is not None, 'config is not defined'
     assert opt.coco or opt.voc or opt.crowdhuman or opt.argoseye, 'dataset is not defined'

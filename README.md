@@ -29,11 +29,14 @@ docker run -it --rm \
 --shm-size=8G \ 
 --network host \
 mfast 
+
+wandb login {API_KEY}
 ```
 
 예시
 ```
 docker run -it --rm --gpus=all -v C:\M-fast:/M-fast -v C:\dataset:/dataset --shm-size=8g --network host mfast
+wandb login xxxxxxxxxxxxxxx
 ```
 
 ### :small_blue_diamond: Docker 내부에서 실행
@@ -117,39 +120,41 @@ python train_model.py --config {config 경로} --coco
  - AP<sup>small</sup> : 0.5
  - AP<sup>medium</sup>: 0.6
  - AP<sup>large</sup> : 0.7
+* 평가를 위해 11 point, 101 point, all point 계산 방법을 지원하지만, COCO에서 사용한 101 point 계산 방법을 사용한다.
+* VOC 데이터셋의 경우 Occlusion 등의 이유로 Difficulty한 객체는 mAP 계산에서 제외하지만, 포함하여 계산되었다.
 
 #### :radio_button: COCO2017 Dataset
-|Model|Backbone|Size|pretrained|AP<sup>0.5:0.95</sup>|AP<sup>50</sup>|AP<sup>75</sup>|AP<sup>small</sup>|AP<sup>midium</sup>|AP<sup>large</sup>|
-|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-|YoloV1|-|-|-|-|-|-|-|-|-|
-|SSD|VGG16|-|Imagenet|-|-|-|-|-|-|
-|SSD|Mobilenet-V1|-|Imagenet|-|-|-|-|-|-|
-|SSD|Mobilenet-V2|-|Imagenet|-|-|-|-|-|-|
-|SSD|Mobilenet-V3|-|Imagenet|-|-|-|-|-|-|
+|Model|Backbone|Params|Flops|pretrained|AP<sup>0.5:0.95</sup>|AP<sup>50</sup>|AP<sup>75</sup>|AP<sup>small</sup>|AP<sup>midium</sup>|AP<sup>large</sup>|
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+|YoloV1|-|-|-|-|-|-|-|-|-|-|
+|SSD|VGG16|42.7M|37.5G|Imagenet|-|-|-|-|-|-|
+|SSD|Mobilenet-V1|-|-|Imagenet|-|-|-|-|-|-|
+|SSD|Mobilenet-V2|16.69M|2.25G|Imagenet|-|-|-|-|-|-|
+|SSD|Mobilenet-V3|-|-|Imagenet|-|-|-|-|-|-|
 
 #### :radio_button: VOC2007+2012 Dataset
-|Model|Backbone|Size|pretrained|AP<sup>0.5:0.95</sup>|AP<sup>50</sup>|AP<sup>75</sup>|AP<sup>small</sup>|AP<sup>midium</sup>|AP<sup>large</sup>|
-|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-|YoloV1|-|-|-|-|-|-|-|-|-|
-|SSD|VGG16|-|Imagenet|-|-|-|-|-|-|
-|SSD|Mobilenet-V1|-|Imagenet|-|-|-|-|-|-|
-|SSD|Mobilenet-V2|-|Imagenet|-|-|-|-|-|-|
-|SSD|Mobilenet-V3|-|Imagenet|-|-|-|-|-|-|
+|Model|Backbone|Params|Flops|pretrained|AP<sup>0.5:0.95</sup>|AP<sup>50</sup>|AP<sup>75</sup>|AP<sup>small</sup>|AP<sup>midium</sup>|AP<sup>large</sup>|
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+|YoloV1|-|-|-|-|-|-|-|-|-|-|
+|SSD|VGG16|42.7M|37.5G|Imagenet|-|-|-|-|-|-|
+|SSD|Mobilenet-V1|-|-|Imagenet|-|-|-|-|-|-|
+|SSD|Mobilenet-V2|16.69M|2.25G|Imagenet|-|-|-|-|-|-|
+|SSD|Mobilenet-V3|-|-|Imagenet|-|-|-|-|-|-|
 
 #### :radio_button: CrowdHuman Dataset
-|Model|Backbone|Size|pretrained|AP<sup>0.5:0.95</sup>|AP<sup>50</sup>|AP<sup>75</sup>|AP<sup>small</sup>|AP<sup>midium</sup>|AP<sup>large</sup>|
-|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-|YoloV1|-|-|-|-|-|-|-|-|-|
-|SSD|VGG16|-|Imagenet|-|-|-|-|-|-|
-|SSD|Mobilenet-V1|-|Imagenet|-|-|-|-|-|-|
-|SSD|Mobilenet-V2|-|Imagenet|-|-|-|-|-|-|
-|SSD|Mobilenet-V3|-|Imagenet|-|-|-|-|-|-|
+|Model|Backbone|Params|Flops|pretrained|AP<sup>0.5:0.95</sup>|AP<sup>50</sup>|AP<sup>75</sup>|AP<sup>small</sup>|AP<sup>midium</sup>|AP<sup>large</sup>|
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+|YoloV1|-|-|-|-|-|-|-|-|-|-|
+|SSD|VGG16|42.7M|37.5G|Imagenet|-|-|-|-|-|-|
+|SSD|Mobilenet-V1|-|-|Imagenet|-|-|-|-|-|-|
+|SSD|Mobilenet-V2|16.69M|2.25G|Imagenet|-|-|-|-|-|-|
+|SSD|Mobilenet-V3|-|-|Imagenet|-|-|-|-|-|-|
 
 #### :radio_button: Argoseye Dataset
-|Model|Backbone|Size|pretrained|AP<sup>0.5:0.95</sup>|AP<sup>50</sup>|AP<sup>75</sup>|AP<sup>small</sup>|AP<sup>midium</sup>|AP<sup>large</sup>|
-|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-|YoloV1|-|-|-|-|-|-|-|-|-|
-|SSD|VGG16|-|Imagenet|-|-|-|-|-|-|
-|SSD|Mobilenet-V1|-|Imagenet|-|-|-|-|-|-|
-|SSD|Mobilenet-V2|-|Imagenet|-|-|-|-|-|-|
-|SSD|Mobilenet-V3|-|Imagenet|-|-|-|-|-|-|
+|Model|Backbone|Params|Flops|pretrained|AP<sup>0.5:0.95</sup>|AP<sup>50</sup>|AP<sup>75</sup>|AP<sup>small</sup>|AP<sup>midium</sup>|AP<sup>large</sup>|
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+|YoloV1|-|-|-|-|-|-|-|-|-|-|
+|SSD|VGG16|42.7M|37.5G|Imagenet|-|-|-|-|-|-|
+|SSD|Mobilenet-V1|-|-|Imagenet|-|-|-|-|-|-|
+|SSD|Mobilenet-V2|16.69M|2.25G|Imagenet|-|-|-|-|-|-|
+|SSD|Mobilenet-V3|-|-|Imagenet|-|-|-|-|-|-|

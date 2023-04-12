@@ -487,6 +487,7 @@ if __name__ == "__main__":
 
                 # resize
                 Resize(input_size),
+                RandomVFlip(p=0.5),
 
                 # geometric
                 RandomZoomOut(max_scale=random_zoomout_max_scale, mean=mean, p=random_zoomout_prob),
@@ -494,7 +495,7 @@ if __name__ == "__main__":
                 mosaic(canvas_range=mosaic_canvas_range, p=mosaic_prob),
                 random_perspective(degree=perspective_degree, translate=perspective_translate, scale=perspective_scale, shear=perspective_shear, perspective=perspective_perspective, p=perspective_prob),
                 
-                RandomVFlip(p=0.5),
+                
                 # resize
                 Resize(input_size),
                 
@@ -524,7 +525,7 @@ if __name__ == "__main__":
               'RANDOM_ZOOMOUT_PROB': 0.0,
               'RANDOM_ZOOMOUT_MAX_SCALE': 4.0,
 
-              'RANDOM_CROP_PROB': 1.0,
+              'RANDOM_CROP_PROB': 0.0,
               'RANDOM_CROP_MIN_OVERLAP': 0.3,
 
               'MEAN': [0.485, 0.456, 0.406],

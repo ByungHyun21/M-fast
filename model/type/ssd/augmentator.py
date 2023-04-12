@@ -34,6 +34,7 @@ class augmentator(object):
 
             # resize
             Resize(input_size),
+            RandomVFlip(p=0.5),
 
             # geometric
             RandomZoomOut(max_scale=random_zoomout_max_scale, mean=mean, p=random_zoomout_prob),
@@ -41,7 +42,6 @@ class augmentator(object):
             mosaic(canvas_range=mosaic_canvas_range, p=mosaic_prob),
             random_perspective(degree=perspective_degree, translate=perspective_translate, scale=perspective_scale, shear=perspective_shear, perspective=perspective_perspective, p=perspective_prob),
             
-            RandomVFlip(p=0.5),
             # resize
             Resize(input_size),
             ]
