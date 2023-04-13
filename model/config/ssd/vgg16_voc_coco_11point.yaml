@@ -40,7 +40,7 @@ METHOD: 'ssd'
 TYPE: 'vgg16'
 LOSS: ['Total', 'Class', 'Regression']
 METRIC: ['mAP']
-MAP_MODE: '101point'
+MAP_MODE: '11point'
 BACKBONE_WEIGHT: 'torchvision'
 PRETRAINED_WEIGHT: None # weight_path
 INPUT_SIZE: [300, 300] # (height, width)
@@ -54,6 +54,7 @@ WORKERS: 2 # workers per gpu
 ### Network
 # MEAN: 네트워크의 Input에 사용할 Mean
 # STD: 네트워크의 Input에 사용할 Standard Deviation
+# x = (x - MEAN) / STD
 MEAN: [0.485, 0.456, 0.406]
 STD: [0.229, 0.224, 0.225]
 

@@ -20,8 +20,8 @@ class ssd_mobilenet_v2(nn.Module):
         
         anchor_n = config['ANCHOR_N']
 
-        self.mean = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1).to(self.device)
-        self.std = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1).to(self.device)
+        self.mean = torch.tensor(config['MEAN']).view(1, 3, 1, 1).to(self.device)
+        self.std = torch.tensor(config['STD']).view(1, 3, 1, 1).to(self.device)
 
         self.backbone = nn.Sequential(
             Conv2d(3, 32, s=2, bias=False, act='relu6'),     # 300x300x3 -> 150x150x32

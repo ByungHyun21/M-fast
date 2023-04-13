@@ -38,7 +38,7 @@ class mAP(object):
                 label = str(label_dir / sub_dir / anno)
                 image = str(image_dir / sub_dir / anno.replace('.xml', '.jpg'))
                 data.append({'image':image, 'label':label})
-        data = data[:10]
+        # data = data[:100]
         #check dataset
         valid = np.ones(len(data)).astype(np.bool8)
         for idx, sample in enumerate(data):
@@ -103,7 +103,7 @@ class mAP(object):
         for idx, calculator in enumerate(self.calculators[:10]):
             self.mAP.update({'metric/mAP_' + str(name[idx]): calculator.get_mAP_mean()})
             self.mAP['metric/mAP_0.5_0.95'] += name[idx] * self.mAP['metric/mAP_' + str(name[idx])]
-            
+        
         self.mAP['metric/mAP_0.5_0.95'] /= sum(name)
         
         name = ['small', 'medium', 'large']

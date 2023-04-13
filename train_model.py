@@ -3,7 +3,7 @@ import yaml
 
 import numpy as np
 import torch
-import torch.optim as optim
+
 import torch.distributed as dist
 import torch.multiprocessing as mp
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -16,7 +16,7 @@ from model.dataloader import dataset
 from model.metric import mAP
 from model.utils import *
 from model.report_manager import report_manager
-
+# model.model = torch.load('runs/ssd_vgg16_voc0712/ssd_vgg16_voc0712_map_best.pth', map_location=config['DEVICE'])
 def train(rank:int, config:dict):
     config['DEVICE'] = 'cuda' + ':' + str(rank)    
     os.environ['MASTER_ADDR'] = config['DDP_MASTER_ADDR']
@@ -27,7 +27,7 @@ def train(rank:int, config:dict):
                             world_size=config['DDP_WORLD_SIZE'], 
                             init_method=config['DDP_INIT_METHOD'])
     
-    model, preprocessor, augmentator, loss_func = network(config, rank, istrain=True)
+    model, preprocessor, augmentator, loss_func, optimizer, scheduler = network(config, rank, istrain=True)
     model.model = DDP(model.model.to(config['DEVICE']), device_ids=[rank], output_device=rank)
     model.to(config['DEVICE'])
 
@@ -55,48 +55,40 @@ def train(rank:int, config:dict):
                       drop_last=False, 
                       sampler=None)
 
-    # TODO: 옵티마이저를 네트워크마다 다르게 설정할 필요가 있음, Config 파일에 옵티마이저 설정 추가
-    lr0 = config['LR'] * config['BATCH_SIZE_MULTI_GPU'] / 32 # batch size 64
-
-    biases = list()
-    not_biases = list()
-    for param_name, param in model.model.named_parameters():
-            if param.requires_grad:
-                if param_name.endswith('.bias'):
-                    biases.append(param)
-                else:
-                    not_biases.append(param)
-
-    # optimizer = optim.Adam(model.parameters(), lr=lr0, betas=(0.9, 0.999), weight_decay=config['WEIGHT_DECAY'])
-    # optimizer = optim.SGD(model.model.parameters(), lr=lr0, momentum=0.9, weight_decay=config['WEIGHT_DECAY'])
-    optimizer = torch.optim.SGD(params=[{'params': biases, 'lr': 2 * lr0}, {'params': not_biases}],
-                                lr=lr0, momentum=0.9, weight_decay=config['WEIGHT_DECAY'])
-    optimizer.zero_grad()
-    
-    def custom_scheduler(step):
-        if step < config['STEPLR'][0]:
-            lr = 1 # learning_rate = lr0 * lr
-        elif step < config['STEPLR'][1]:
-            lr = 0.1
-        else:
-            lr = 0.01
-        return lr
-                
-    scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=custom_scheduler)
-    
     # metric
     if 'mAP' in config['METRIC']:
         metric_mAP = mAP(config)
-        metric_mAP.set(config['DATASET'], config['CATEGORY'], config['CLASS'], model.model_class)
+        metric_mAP.set(config['DATASET'], config['CATEGORY'], config['CLASS'], model.model_class, config['MAP_MODE'])
     
     epoch = -1
     step = 0
-    best_loss = float('inf')
+    
+    best_mAP = 0
     manager = report_manager(config, rank)
+
+    # save directory
+    if rank == 0:
+        if not os.path.exists("runs"):
+            os.mkdir("runs")
+        run_name = f"{config['METHOD']}_{config['TYPE']}_{config['DATASET']}".lower()
+        save_dir = f"runs/{run_name}"
+        index_dir = 0
+        while True:
+            if not os.path.exists(save_dir):
+                os.mkdir(save_dir)
+                break
+            else:
+                index_dir += 1
+                save_dir = f"runs/{run_name}_{index_dir}"
+
+        with open(f"{save_dir}/configuration.txt", 'w') as f:
+            for k, v in config.items():
+                f.write(str(k) + ' : '+ str(v) + '\n')
+
     while True:
         epoch += 1
         if rank == 0:
-            print(f"\n\nModel: {config['MODEL']}, epoch: {epoch}")
+            print(f"\n\nModel: {config['MODEL']}, epoch: {epoch}, step: {step}")
             
         img_train = []
         gt_train = []
@@ -164,9 +156,15 @@ def train(rank:int, config:dict):
                     manager.wandb_report(step, mAPs)
                     metric_mAP.print()
             
-            # # # # #
-            # Save
-        
+                # Save Best Model
+                if rank == 0:
+                    if mAPs['metric/mAP_0.5_0.95'] > best_mAP:
+                        best_mAP = mAPs['metric/mAP_0.5_0.95']
+                        torch.save(model.model, f"{save_dir}/{run_name}_mAP_best.pth".lower())
+                        with open(f"{save_dir}/mAP_best.txt", 'w') as f:
+                            for k, v in mAPs.items():
+                                f.write(str(k) + ' : '+ str(v) + '\n')
+
         dist.barrier()
         
         if step >= config['STEPLR'][-1]:
@@ -180,38 +178,55 @@ def train(rank:int, config:dict):
             metric_mAP.print() 
 
     dist.destroy_process_group()
+
+    # Save Last Model
+    if rank == 0:
+        if 'mAP' in config['METRIC']:
+            torch.save(model.model, f"{save_dir}/{save_dir}_mAP_{best_mAP}_last.pth".lower())
+            with open(f"{save_dir}/mAP_last.txt", 'w') as f:
+                for k, v in mAPs.items():
+                    f.write(str(k) + ' : '+ str(v) + '\n')
         
     if 'mAP' in config['METRIC']:
         with open('model/config/dataset/coco.yaml') as f:
             target = yaml.load(f, Loader=yaml.SafeLoader)
-        metric_mAP.set(target['DATASET'], target['CATEGORY'], target['CLASS'], model.model_class)
+        metric_mAP.set(target['DATASET'], target['CATEGORY'], target['CLASS'], model.model_class, config['MAP_MODE'])
         metric_mAP.reset()
         mAPs = metric_mAP(rank, model)
         metric_mAP.print()
+        with open(f"{save_dir}/mAP_coco_last.txt", 'w') as f:
+            for k, v in mAPs.items():
+                f.write(str(k) + ' : '+ str(v) + '\n')
     
         with open('model/config/dataset/voc.yaml') as f:
             target = yaml.load(f, Loader=yaml.SafeLoader)
-        metric_mAP.set(target['DATASET'], target['CATEGORY'], target['CLASS'], model.model_class)
+        metric_mAP.set(target['DATASET'], target['CATEGORY'], target['CLASS'], model.model_class, config['MAP_MODE'])
         metric_mAP.reset()
         mAPs = metric_mAP(rank, model)
         metric_mAP.print()
+        with open(f"{save_dir}/mAP_voc_last.txt", 'w') as f:
+            for k, v in mAPs.items():
+                f.write(str(k) + ' : '+ str(v) + '\n')
     
         with open('model/config/dataset/crowdhuman.yaml') as f:
             target = yaml.load(f, Loader=yaml.SafeLoader)
-        metric_mAP.set(target['DATASET'], target['CATEGORY'], target['CLASS'], model.model_class)
+        metric_mAP.set(target['DATASET'], target['CATEGORY'], target['CLASS'], model.model_class, config['MAP_MODE'])
         metric_mAP.reset()
         mAPs = metric_mAP(rank, model)
         metric_mAP.print()
+        with open(f"{save_dir}/mAP_crowdhuman_last.txt", 'w') as f:
+            for k, v in mAPs.items():
+                f.write(str(k) + ' : '+ str(v) + '\n')
     
         with open('model/config/dataset/argoseye.yaml') as f:
             target = yaml.load(f, Loader=yaml.SafeLoader)
-        metric_mAP.set(target['DATASET'], target['CATEGORY'], target['CLASS'], model.model_class)
+        metric_mAP.set(target['DATASET'], target['CATEGORY'], target['CLASS'], model.model_class, config['MAP_MODE'])
         metric_mAP.reset()
         mAPs = metric_mAP(rank, model)
         metric_mAP.print()
-        
-        
-        
+        with open(f"{save_dir}/mAP_argoseye_last.txt", 'w') as f:
+            for k, v in mAPs.items():
+                f.write(str(k) + ' : '+ str(v) + '\n')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -225,10 +240,10 @@ if __name__ == '__main__':
     opt = parser.parse_args()
 
     #TODO: 테스트용
-    opt.voc = True
+    # opt.voc = True
     # opt.wandb = 'byunghyun'
     # opt.dataset_path = 'C:\dataset'
-    opt.dataset_path = 'C:\\Users\\dqg06\\Desktop'
+    # opt.dataset_path = 'C:\\Users\\dqg06\\Desktop'
     
     assert opt.config is not None, 'config is not defined'
     assert opt.coco or opt.voc or opt.crowdhuman or opt.argoseye, 'dataset is not defined'
