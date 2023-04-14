@@ -1,5 +1,6 @@
 import argparse
 import yaml
+import time
 
 import numpy as np
 import torch
@@ -60,12 +61,6 @@ def train(rank:int, config:dict):
         metric_mAP = mAP(config)
         metric_mAP.set(config['DATASET'], config['CATEGORY'], config['CLASS'], model.model_class, config['MAP_MODE'])
     
-    epoch = -1
-    step = 0
-    
-    best_mAP = 0
-    manager = report_manager(config, rank)
-
     # save directory
     if rank == 0:
         if not os.path.exists("runs"):
@@ -85,10 +80,17 @@ def train(rank:int, config:dict):
             for k, v in config.items():
                 f.write(str(k) + ' : '+ str(v) + '\n')
 
+    epoch = -1
+    step = 0
+    time_start = time.time()
+    best_mAP = 0
+    manager = report_manager(config, rank)
     while True:
         epoch += 1
         if rank == 0:
-            print(f"\n\nModel: {config['MODEL']}, epoch: {epoch}, step: {step}")
+            time_current = time.time()
+            time_remain = (time_current - time_start) / (step+1) * (config['STEPLR'][-1] - step)
+            print(f"\n\nModel: {config['MODEL']}, epoch: {epoch}, step: {step}, time: {time_current - time_start:.2f}s, remain: {time_remain:.2f}s")
             
         img_train = []
         gt_train = []
@@ -182,7 +184,7 @@ def train(rank:int, config:dict):
     # Save Last Model
     if rank == 0:
         if 'mAP' in config['METRIC']:
-            torch.save(model.model, f"{save_dir}/{save_dir}_mAP_{best_mAP}_last.pth".lower())
+            torch.save(model.model, f"{save_dir}/{run_name}_mAP_{best_mAP}_last.pth".lower())
             with open(f"{save_dir}/mAP_last.txt", 'w') as f:
                 for k, v in mAPs.items():
                     f.write(str(k) + ' : '+ str(v) + '\n')
@@ -240,10 +242,10 @@ if __name__ == '__main__':
     opt = parser.parse_args()
 
     #TODO: 테스트용
-    # opt.voc = True
+    opt.voc = True
     # opt.wandb = 'byunghyun'
     # opt.dataset_path = 'C:\dataset'
-    # opt.dataset_path = 'C:\\Users\\dqg06\\Desktop'
+    opt.dataset_path = 'C:\\Users\\dqg06\\Desktop'
     
     assert opt.config is not None, 'config is not defined'
     assert opt.coco or opt.voc or opt.crowdhuman or opt.argoseye, 'dataset is not defined'

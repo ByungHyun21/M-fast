@@ -38,7 +38,7 @@ class mAP(object):
                 label = str(label_dir / sub_dir / anno)
                 image = str(image_dir / sub_dir / anno.replace('.xml', '.jpg'))
                 data.append({'image':image, 'label':label})
-        # data = data[:100]
+        
         #check dataset
         valid = np.ones(len(data)).astype(np.bool8)
         for idx, sample in enumerate(data):

@@ -8,7 +8,7 @@ docker run -it --rm --gpus all -v /home/harsper/work/code/M-fast:/M-fast -v /hom
 docker run -it --rm -v /home/harsper/work/code/M-fast:/M-fast -v /home/harsper/oddata:/dataset mfast
 
 
-docker run -it --rm --runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=7 -v /home/harsper/code/M-fast:/M-fast -v /home/harsper/oddata:/dataset --shm-size=8g --network host mfast
+docker run -it --rm --runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=2,3 -v /home/harsper/code/M-fast:/M-fast -v /home/harsper/oddata:/dataset --shm-size=8g --network host mfast
 
 wandb login 336a1139e7b5522aabbd0eff612d30b3b4c33366
 

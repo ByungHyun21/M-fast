@@ -36,9 +36,10 @@ def network(config, rank, istrain):
                         not_biases.append(param)
 
         if 'vgg' in config['TYPE']:
-            optimizer = optim.SGD(model_full.model.parameters(), lr=lr0, momentum=0.9, weight_decay=config['WEIGHT_DECAY'])
+            # optimizer = optim.SGD(model_full.model.parameters(), lr=lr0, momentum=0.9, weight_decay=config['WEIGHT_DECAY'])
             # optimizer = torch.optim.SGD(params=[{'params': biases, 'lr': 2 * lr0}, {'params': not_biases}],
             #                             lr=lr0, momentum=0.9, weight_decay=config['WEIGHT_DECAY'])
+            optimizer = optim.Adam(model_full.model.parameters(), lr=lr0/10.0, betas=(0.9, 0.999), weight_decay=config['WEIGHT_DECAY'])
 
             def custom_scheduler(step):
                 if step < config['STEPLR'][0]:
@@ -49,11 +50,15 @@ def network(config, rank, istrain):
                     lr = 0.01
                 return lr
             
+            # def custom_scheduler(step):
+            #     lr = (0.92) ** (step // 10000)
+            #     return lr
+
             scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=custom_scheduler)
 
         elif 'mobilenet' in config['TYPE']:
             # optimizer = optim.SGD(model_full.model.parameters(), lr=lr0, momentum=0.9, weight_decay=config['WEIGHT_DECAY'])
-            optimizer = optim.Adam(model_full.parameters(), lr=lr0, betas=(0.9, 0.999), weight_decay=config['WEIGHT_DECAY'])
+            optimizer = optim.Adam(model_full.model.parameters(), lr=lr0/10.0, betas=(0.9, 0.999), weight_decay=config['WEIGHT_DECAY'])
             def custom_scheduler(step):
                 if step < config['STEPLR'][0]:
                     lr = 1 # learning_rate = lr0 * lr
