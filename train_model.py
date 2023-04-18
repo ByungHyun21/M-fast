@@ -45,16 +45,16 @@ def train(rank:int, config:dict):
                       shuffle=True if sampler is None else False, 
                       num_workers=config['WORKERS'], 
                       pin_memory=True, 
-                      drop_last=False, 
-                      sampler=sampler) # Sampler will shuffle dataset in DDP Training
+                      drop_last=True, # 간혹 마지막 배치 크기가 1인 경우가 있어서, batch norm에서 문제 발생. 그래서 drop_last=True로 설정 
+                      sampler=sampler) # DDP에서만 sampler가 필요함
 
     ds_valid = DataLoader(dataset_valid, 
                       batch_size=batch_size,
                       shuffle=False, 
                       num_workers=config['WORKERS'], 
                       pin_memory=True, 
-                      drop_last=False, 
-                      sampler=None)
+                      drop_last=True, 
+                      s11ampler=None)
 
     # metric
     if 'mAP' in config['METRIC']:
@@ -179,12 +179,10 @@ def train(rank:int, config:dict):
             manager.wandb_report(step, mAPs)
             metric_mAP.print() 
 
-    dist.destroy_process_group()
-
     # Save Last Model
     if rank == 0:
         if 'mAP' in config['METRIC']:
-            torch.save(model.model, f"{save_dir}/{run_name}_mAP_{best_mAP}_last.pth".lower())
+            torch.save(model.model, f"{save_dir}/{run_name}_mAP_{best_mAP:.2f}_last.pth".lower())
             with open(f"{save_dir}/mAP_last.txt", 'w') as f:
                 for k, v in mAPs.items():
                     f.write(str(k) + ' : '+ str(v) + '\n')
@@ -229,10 +227,12 @@ def train(rank:int, config:dict):
         with open(f"{save_dir}/mAP_argoseye_last.txt", 'w') as f:
             for k, v in mAPs.items():
                 f.write(str(k) + ' : '+ str(v) + '\n')
+        
+    dist.destroy_process_group()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', type=str, default='model/config/ssd/vgg16_voc.yaml')
+    parser.add_argument('--config', type=str, default='model/config/ssd/mobilenet_v2_voc.yaml')
     parser.add_argument('--coco', action='store_true')
     parser.add_argument('--voc', action='store_true')
     parser.add_argument('--crowdhuman', action='store_true')
@@ -242,8 +242,9 @@ if __name__ == '__main__':
     opt = parser.parse_args()
 
     #TODO: 테스트용
-    opt.voc = True
-    # opt.wandb = 'byunghyun'
+    # opt.voc = True
+    opt.argoseye = True
+    opt.wandb = 'byunghyun'
     # opt.dataset_path = 'C:\dataset'
     opt.dataset_path = 'C:\\Users\\dqg06\\Desktop'
     

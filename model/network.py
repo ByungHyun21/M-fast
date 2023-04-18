@@ -57,20 +57,20 @@ def network(config, rank, istrain):
             scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=custom_scheduler)
 
         elif 'mobilenet' in config['TYPE']:
-            # optimizer = optim.SGD(model_full.model.parameters(), lr=lr0, momentum=0.9, weight_decay=config['WEIGHT_DECAY'])
-            optimizer = optim.Adam(model_full.model.parameters(), lr=lr0/10.0, betas=(0.9, 0.999), weight_decay=config['WEIGHT_DECAY'])
-            def custom_scheduler(step):
-                if step < config['STEPLR'][0]:
-                    lr = 1 # learning_rate = lr0 * lr
-                elif step < config['STEPLR'][1]:
-                    lr = 0.1
-                else:
-                    lr = 0.01
-                return lr
-        
+            optimizer = optim.SGD(model_full.model.parameters(), lr=lr0, momentum=0.9, weight_decay=config['WEIGHT_DECAY'])
+            # optimizer = optim.Adam(model_full.model.parameters(), lr=lr0/10.0, betas=(0.9, 0.999), weight_decay=config['WEIGHT_DECAY'])
             # def custom_scheduler(step):
-            #     lr = (0.92) ** (step // 10000)
+            #     if step < config['STEPLR'][0]:
+            #         lr = 1 # learning_rate = lr0 * lr
+            #     elif step < config['STEPLR'][1]:
+            #         lr = 0.1
+            #     else:
+            #         lr = 0.01
             #     return lr
+        
+            def custom_scheduler(step):
+                lr = (0.92) ** (step // 10000)
+                return lr
 
             scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=custom_scheduler)
 
