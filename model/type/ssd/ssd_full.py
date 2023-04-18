@@ -121,7 +121,8 @@ class ssd_full(nn.Module):
         
         return ious 
 
-    def convert_gt(self, gt):
+    def convert_gt(self, gt): 
+        # wandb log 같은 곳에서 사용되는 함수
         # gt: preprocess 이후의 데이터
         # return: preprocess 이전의 데이터
         conf = gt[:, :, 4:]
@@ -153,14 +154,41 @@ class ssd_full(nn.Module):
 
         return original_gt, related_anchor
 
-    def postprocess_openvino(self, x):
+class ssd_full_argoseye(nn.Module):
+    # Argoseye에 탑재할 SSD 모델
+    def __init__(self, config, model, anchor):
+        super().__init__()
+        self.device = config['DEVICE']
+        self.model_class = config['CLASS']
+        self.input_size = config['INPUT_SIZE']
+
+        self.model = model
+        self.anchor = torch.from_numpy(anchor).float().to('cpu').to(config['DEVICE'])
+        # self.activation = nn.Sigmoid()
+        self.activation = nn.Softmax(dim=2)
+        
+        self.topk = config['TOPK']
+        self.nms_iou_threshold = config['NMS_IOU_THRESHOLD']
+
+    @torch.no_grad()
+    def forward(self, x):
+        x = self.model(x)
+        x = self.postprocess(x)
+        return x
+    
+    def postprocess(self, x):
         """
         x = [batch, anchor_n, 4+1+class_n], 4 = [delta_cx, delta_cy, delta_w, delta_h], 1 = background
         self.anchor = [anchor_n, 4], 4 = [cx, cy, w, h]
         """
-        cls = x[:, :, 4:]
+        class_pred = x[:, :, 4:]
         d_x, d_y, d_w, d_h = torch.split(x[:, :, :4], [1, 1, 1, 1], dim=2)
         a_x, a_y, a_w, a_h = torch.split(self.anchor, [1, 1, 1, 1], dim=1)
+        
+        a_x.unsqueeze_(0)
+        a_y.unsqueeze_(0)
+        a_w.unsqueeze_(0)
+        a_h.unsqueeze_(0)
         
         cx = (d_x * a_w / 10.0) + a_x
         cy = (d_y * a_h / 10.0) + a_y
@@ -172,9 +200,7 @@ class ssd_full(nn.Module):
         y1 = cy - (h / 2.0)
         y2 = cy + (h / 2.0)
         
-        cls = self.activation(cls)
-
-        return torch.concat([cls, x1, y1, x2, y2], dim=1).contiguous()
-    
-    
-    
+        class_pred = self.activation(class_pred)
+        
+        output = torch.concat([class_pred, x1, y1, x2, y2], dim=2).contiguous()[0]
+        return output

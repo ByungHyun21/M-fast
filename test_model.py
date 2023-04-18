@@ -5,13 +5,13 @@ import os
 import cv2
 
 import numpy as np
-import torch
 
 from tqdm import tqdm
 from model.type.ssd.ssd_full import ssd_full
 from model.type.ssd.anchor import anchor_generator
 from model.utils import *
 
+import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -32,7 +32,6 @@ def test(config:dict):
             save_file = file
         if config['last'] and file.endswith('last.pth'):
             save_file = file
-            
     
     assert save_file is not None, 'best나 last를 선택해야 합니다.'
     
@@ -94,15 +93,20 @@ def test(config:dict):
                             y2 = int(detection[5] * h_output)
                             txt = f"{config['CLASS'][int(detection[0])]} : {detection[1]:.2f}"
                             
-                            cv2.rectangle(img_out, (x1, y1), (x2, y2), (0, 0, 255), 1)
-                            cv2.putText(img_out, txt, (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 1)
+                            box_color = (0, 255, 0)
+                            if y2 > h_output * 0.7:
+                                box_color = (0, 0, 255)
+                            cv2.rectangle(img_out, (x1, y1), (x2, y2), box_color, 3)
+                            cv2.putText(img_out, txt, (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 0.5, box_color, 1)
                             
             end = time.time()
-            cv2.putText(img_out, f"FPS : {1/(end-start):.2f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 1)
+            cv2.putText(img_out, f"FPS : {1/(end-start):.2f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
             
             if config['show_result']:
                 cv2.imshow('result', img_out)
-                cv2.waitKey(1)
+                key = cv2.waitKey(1)
+                if key == ord('q'):
+                    break
             
             if config['save_video'] is not None:
                 vc_out.write(img_out)
@@ -134,36 +138,81 @@ def test(config:dict):
                             y2 = int(detection[5] * h_output)
                             txt = f"{config['CLASS'][int(detection[0])]} : {detection[1]:.2f}"
                             
-                            cv2.rectangle(img_out, (x1, y1), (x2, y2), (0, 0, 255), 1)
-                            cv2.putText(img_out, txt, (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 1)
+                            box_color = (0, 255, 0)
+                            
+                            cv2.rectangle(img_out, (x1, y1), (x2, y2), box_color, 3)
+                            cv2.putText(img_out, txt, (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 0.5, box_color, 1)
                             
             end = time.time()
-            cv2.putText(img_out, f"FPS : {1/(end-start):.2f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 1)
+            cv2.putText(img_out, f"FPS : {1/(end-start):.2f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
             
             if config['show_result']:
                 cv2.imshow('result', img_out)
-                cv2.waitKey(1)
+                key = cv2.waitKey(1)
+                if key == ord('q'):
+                    break
                 
             if config['save_video'] is not None:
                 vc_out.write(img_out)
         
+    if config['video'] is not None:
+        vc = cv2.VideoCapture(config['video'])
+        assert vc.isOpened(), '동영상 파일을 열 수 없습니다.'
         
+        while True:
+            ret, img = vc.read()
+            if not ret:
+                vc.release()
+                break
+            
+            start = time.time()
+            
+            img = cv2.resize(img, (w_input, h_input))
+            img_out = cv2.resize(img, (w_output, h_output))
+            img = torch.from_numpy(img).permute([2, 0, 1]).unsqueeze(0).to(config['DEVICE'])
+            pred = model(img)
+            
+            for i in range(len(config['TASK'])):
+                if config['TASK'][i].lower() == 'object detection':
+                    detections = pred[0]
+                    # detections = [batch, class, score, x1, y1, x2, y2]
+                    
+                    for detection in detections:
+                        if detection[1] > 0.5:
+                            x1 = int(detection[2] * w_output)
+                            y1 = int(detection[3] * h_output)
+                            x2 = int(detection[4] * w_output)
+                            y2 = int(detection[5] * h_output)
+                            txt = f"{config['CLASS'][int(detection[0])]} : {detection[1]:.2f}"
+                            
+                            box_color = (0, 255, 0)
+                            
+                            cv2.rectangle(img_out, (x1, y1), (x2, y2), box_color, 2)
+                            cv2.putText(img_out, txt, (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 0.5, box_color, 1)
+                            
+            end = time.time()
+            cv2.putText(img_out, f"FPS : {1/(end-start):.2f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+            
+            if config['show_result']:
+                cv2.imshow('result', img_out)
+                key = cv2.waitKey(1)
+                if key == ord('q'):
+                    vc.release()
+                    break
+                
+            if config['save_video'] is not None:
+                vc_out.write(img_out)
+       
     if config['save_video'] is not None:
         vc_out.release()
-        
-            
-            
-        
-        
-    
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model_dir', type=str, default='runs/ssd_mobilenet_v2_voc0712_decay')
+    parser.add_argument('--model_dir', type=str, default='runs/ssd_mobilenet_v2_argoseye_decay')
     
     # Input
     parser.add_argument('--img_dir', default=None, type=str)
+    parser.add_argument('--video', default=None, type=str)
     parser.add_argument('--cam', action='store_true')
     
     # CPU or GPU
@@ -185,9 +234,14 @@ if __name__ == '__main__':
     
     opt = parser.parse_args()
     
+    # Test
     opt.best = True
     opt.cam = True
     opt.show_result = True
+    opt.save_video = 'test_ceil.mp4'
+    # opt.video = 'D:\\market\\C032300_002.mp4'
+    # opt.img_dir = 'C:\\Users\\dqg06\\Downloads\\argoseye\\argoseye\\test_video\\CH4'
+    
 
     # read txt to dict
     with open(f"{opt.model_dir}/configuration.txt", 'r') as f:
