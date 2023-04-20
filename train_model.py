@@ -54,7 +54,7 @@ def train(rank:int, config:dict):
                       num_workers=config['WORKERS'], 
                       pin_memory=True, 
                       drop_last=True, 
-                      s11ampler=None)
+                      sampler=None)
 
     # metric
     if 'mAP' in config['METRIC']:
@@ -246,7 +246,7 @@ if __name__ == '__main__':
     opt.argoseye = True
     opt.wandb = 'byunghyun'
     # opt.dataset_path = 'C:\dataset'
-    opt.dataset_path = 'C:\\Users\\dqg06\\Desktop'
+    opt.dataset_path = 'C:\\Users\\dqg06\\OneDrive\\Desktop'
     
     assert opt.config is not None, 'config is not defined'
     assert opt.coco or opt.voc or opt.crowdhuman or opt.argoseye, 'dataset is not defined'

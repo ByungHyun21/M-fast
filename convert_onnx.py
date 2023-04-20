@@ -52,7 +52,7 @@ def convert_onnx(config:dict):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model_dir', type=str, default='runs/ssd_mobilenet_v2_argoseye_decay')
+    parser.add_argument('--model_dir', type=str, default='runs/ssd_mobilenet_v2_argoseye')
 
     # Save Video (저장할 비디오 이름름)
     parser.add_argument('--save_video', default=None, type=str)

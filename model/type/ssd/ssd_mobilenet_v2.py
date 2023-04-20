@@ -90,8 +90,8 @@ class ssd_mobilenet_v2(nn.Module):
     def forward(self, x):
         # x = (x / 128.0) - 1.0
         
-        x = x / 255.0
-        x = (x - self.mean) / self.std
+        # x = x / 255.0
+        # x = (x - self.mean) / self.std
         
         x = self.backbone(x)
         
