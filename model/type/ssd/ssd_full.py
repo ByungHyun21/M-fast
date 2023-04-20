@@ -9,7 +9,7 @@ class ssd_full(nn.Module):
         self.input_size = config['INPUT_SIZE']
 
         self.model = model
-        self.anchor = torch.from_numpy(anchor).float().to('cpu').to(config['DEVICE'])
+        self.anchor = torch.from_numpy(anchor).float().to(config['DEVICE'])
         # self.activation = nn.Sigmoid()
         self.activation = nn.Softmax(dim=2)
         
@@ -163,9 +163,10 @@ class ssd_full_argoseye(nn.Module):
         self.input_size = config['INPUT_SIZE']
 
         self.model = model
-        self.anchor = torch.from_numpy(anchor).float().to('cpu').to(config['DEVICE'])
+        # self.anchor = torch.from_numpy(anchor).float().to(config['DEVICE'])
+        self.anchor = anchor
         # self.activation = nn.Sigmoid()
-        self.activation = nn.Softmax(dim=2)
+        self.activation = nn.Softmax(dim=-1)
         
         self.topk = config['TOPK']
         self.nms_iou_threshold = config['NMS_IOU_THRESHOLD']
@@ -183,12 +184,13 @@ class ssd_full_argoseye(nn.Module):
         """
         class_pred = x[:, :, 4:]
         d_x, d_y, d_w, d_h = torch.split(x[:, :, :4], [1, 1, 1, 1], dim=2)
-        a_x, a_y, a_w, a_h = torch.split(self.anchor, [1, 1, 1, 1], dim=1)
+        # a_x, a_y, a_w, a_h = torch.split(self.anchor, [1, 1, 1, 1], dim=1)
+        a_x, a_y, a_w, a_h = torch.split(torch.tensor(self.anchor).to(self.device), [1, 1, 1, 1], dim=1)
         
-        a_x.unsqueeze_(0)
-        a_y.unsqueeze_(0)
-        a_w.unsqueeze_(0)
-        a_h.unsqueeze_(0)
+        a_x = a_x.unsqueeze(0)
+        a_y = a_y.unsqueeze(0)
+        a_w = a_w.unsqueeze(0)
+        a_h = a_h.unsqueeze(0)
         
         cx = (d_x * a_w / 10.0) + a_x
         cy = (d_y * a_h / 10.0) + a_y
@@ -202,5 +204,5 @@ class ssd_full_argoseye(nn.Module):
         
         class_pred = self.activation(class_pred)
         
-        output = torch.concat([class_pred, x1, y1, x2, y2], dim=2).contiguous()[0]
+        output = torch.concat([class_pred, x1, y1, x2, y2], dim=-1)
         return output

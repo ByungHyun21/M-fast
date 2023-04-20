@@ -16,6 +16,8 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 from torch.nn.parallel import DistributedDataParallel as DDP
 
+# torch.set_default_tensor_type('torch.FloatTensor')
+
 def convert_onnx(config:dict):
     # weight load
     files = os.listdir(config['model_dir'])
@@ -39,8 +41,8 @@ def convert_onnx(config:dict):
         anchor = anchor_generator(config)
         model = ssd_full_argoseye(config, inner_model, anchor)
     
-    # model.model = model.model.to(config['DEVICE'])
-    # model.to(config['DEVICE'])
+    model.model = model.model.to(config['DEVICE'])
+    model.to(config['DEVICE'])
     
     model.model.eval()
     model.eval()
@@ -52,10 +54,7 @@ def convert_onnx(config:dict):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model_dir', type=str, default='runs/ssd_mobilenet_v2_argoseye')
-
-    # Save Video (저장할 비디오 이름름)
-    parser.add_argument('--save_video', default=None, type=str)
+    parser.add_argument('--model_dir', type=str, default='runs/ssd_mobilenet_v2_argoseye_decay')
     
     # Select model weight
     parser.add_argument('--best', action='store_true')

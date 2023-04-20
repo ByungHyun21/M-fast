@@ -17,7 +17,7 @@ from model.dataloader import dataset
 from model.metric import mAP
 from model.utils import *
 from model.report_manager import report_manager
-# model.model = torch.load('runs/ssd_vgg16_voc0712/ssd_vgg16_voc0712_map_best.pth', map_location=config['DEVICE'])
+
 def train(rank:int, config:dict):
     config['DEVICE'] = 'cuda' + ':' + str(rank)    
     os.environ['MASTER_ADDR'] = config['DDP_MASTER_ADDR']

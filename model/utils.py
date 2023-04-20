@@ -39,6 +39,7 @@ def configuration(opt):
     
     config.update({'DDP_BACKEND': 'gloo'})
     
+    # DDP 에 사용할 포트를 사용하지 않는 포트중 임의로 선택
     import socket
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.bind(("",0))
@@ -53,12 +54,3 @@ def configuration(opt):
     config.update({'DDP_WORLD_SIZE': torch.cuda.device_count()})
         
     return config
-
-def save_model(config, model):
-    if not os.path.exists('runs'):
-            os.mkdir('runs')
-    save_path = 'runs/' + config['MODEL'] + '_' + config['DATASET'] 
-    if not os.path.exists(save_path):
-        os.mkdir(save_path)
-
-    torch.save(model.module.state_dict(), save_path + '/' + config['PROJECT'] + '_train.pt')

@@ -3,59 +3,25 @@ import yaml
 import time
 import os
 import cv2
-
 import numpy as np
-import random
-
-from tqdm import tqdm
-from model.type.ssd.ssd_full import ssd_full
-from model.type.ssd.anchor import anchor_generator
-from model.utils import *
-
-import torch
-import torch.distributed as dist
-import torch.multiprocessing as mp
-from torch.nn.parallel import DistributedDataParallel as DDP
+import onnxruntime
+import random 
 
 random.seed(100)
 colormap = []
 for i in range(1000):
     colormap.append((random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)))
-    
+
 def test(config:dict):
-    # Select device
-    if config['device'].lower() == 'cpu':
-        config['DEVICE'] = 'cpu'
-    else:
-        config['DEVICE'] = 'cuda:0'   
+    if config['device'].lower() == 'cpu': #cpu
+        ep_list = ['CPUExecutionProvider']
+    else: #gpu 
+        ep_list = ['CUDAExecutionProvider'] # , 'CPUExecutionProvider'
     
-    # weight load
-    files = os.listdir(config['model_dir'])
-    save_file = None
-    for file in files:
-        if config['best'] and file.endswith('best.pth'):
-            save_file = file
-        if config['last'] and file.endswith('last.pth'):
-            save_file = file
+    ort_session = onnxruntime.InferenceSession(f"{config['model_dir']}/model.onnx", providers=ep_list)
     
-    assert save_file is not None, 'best나 last를 선택해야 합니다.'
-    
-    config['DEVICE'] = 'cuda:0'
-    os.environ['MASTER_ADDR'] = str(config['DDP_MASTER_ADDR'])
-    os.environ['MASTER_PORT'] = str(config['DDP_MASTER_PORT'])
-    
-    dist.init_process_group(backend='gloo', rank=0, world_size=1)
-    
-    inner_model = torch.load(f"{config['model_dir']}/{save_file}", map_location=config['DEVICE'])
-    if config['METHOD'] == 'ssd':
-        anchor = anchor_generator(config)
-        model = ssd_full(config, inner_model, anchor)
-    
-    model.model = model.model.to(config['DEVICE'])
-    model.to(config['DEVICE'])
-    
-    model.model.eval()
-    model.eval()
+    print(f"ep_list : {ep_list}")
+    print(f"onnx session : {ort_session.get_providers()}")
     
     w_input = config['INPUT_SIZE'][1]
     h_input = config['INPUT_SIZE'][0]
@@ -86,12 +52,15 @@ def test(config:dict):
             
             img = cv2.resize(img, (w_input, h_input))
             img_out = cv2.resize(img, (w_output, h_output))
-            img = torch.from_numpy(img).permute([2, 0, 1]).unsqueeze(0).to(config['DEVICE'])
-            pred = model(img)
+            img = np.expand_dims(img.transpose(2, 0, 1).astype(np.float32), axis=0)
+            
+            ort_inputs = {ort_session.get_inputs()[0].name: img}
+            detections = ort_session.run(None, ort_inputs)            
+            detections = detections[0]
             
             for i in range(len(config['TASK'])):
                 if config['TASK'][i].lower() == 'object detection':
-                    detections = pred[0]
+                    detections = detections[0]
                     # detections = [batch, class, score, x1, y1, x2, y2]
                     
                     for detection in detections:
@@ -131,12 +100,15 @@ def test(config:dict):
             img = cv2.imread(f"{config['img_dir']}/{img}")
             img = cv2.resize(img, (w_input, h_input))
             img_out = cv2.resize(img, (w_output, h_output))
-            img = torch.from_numpy(img).permute([2, 0, 1]).unsqueeze(0).to(config['DEVICE'])
-            pred = model(img)
+            img = np.expand_dims(img.transpose(2, 0, 1).astype(np.float32), axis=0)
+            
+            ort_inputs = {ort_session.get_inputs()[0].name: img}
+            detections = ort_session.run(None, ort_inputs)            
+            detections = detections[0]
             
             for i in range(len(config['TASK'])):
                 if config['TASK'][i].lower() == 'object detection':
-                    detections = pred[0]
+                    detections = detections[0]
                     # detections = [batch, class, score, x1, y1, x2, y2]
                     
                     for detection in detections:
@@ -179,12 +151,15 @@ def test(config:dict):
             
             img = cv2.resize(img, (w_input, h_input))
             img_out = cv2.resize(img, (w_output, h_output))
-            img = torch.from_numpy(img).permute([2, 0, 1]).unsqueeze(0).to(config['DEVICE'])
-            pred = model(img)
+            img = np.expand_dims(img.transpose(2, 0, 1).astype(np.float32), axis=0)
+            
+            ort_inputs = {ort_session.get_inputs()[0].name: img}
+            detections = ort_session.run(None, ort_inputs)            
+            detections = detections[0]
             
             for i in range(len(config['TASK'])):
                 if config['TASK'][i].lower() == 'object detection':
-                    detections = pred[0]
+                    detections = detections[0]
                     # detections = [batch, class, score, x1, y1, x2, y2]
                     
                     for detection in detections:
@@ -253,7 +228,9 @@ if __name__ == '__main__':
     # opt.save_video = 'test_ceil.mp4'
     # opt.video = 'D:\\market\\C032300_002.mp4'
     # opt.img_dir = 'C:\\Users\\dqg06\\OneDrive\\Desktop\\argoseye\\test_video\\CH4'
+    opt.device = 'gpu'
     
+    assert opt.model_dir is not None, '모델 경로를 입력해주세요.'
 
     # read txt to dict
     with open(f"{opt.model_dir}/configuration.txt", 'r') as f:
