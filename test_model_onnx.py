@@ -94,13 +94,16 @@ def test(config:dict):
         img_list = os.listdir(config['img_dir'])
         img_list.sort()
         
-        for img in img_list:
+        for img_file in img_list:
             start = time.time()
             
-            img = cv2.imread(f"{config['img_dir']}/{img}")
-            img = cv2.resize(img, (w_input, h_input))
-            img_out = cv2.resize(img, (w_output, h_output)).astype(np.uint8)
-            img = np.expand_dims(img.transpose(2, 0, 1).astype(np.float32), axis=0)
+            try:
+                img = cv2.imread(f"{config['img_dir']}/{img_file}")
+                img = cv2.resize(img, (w_input, h_input))
+                img_out = cv2.resize(img, (w_output, h_output)).astype(np.uint8)
+                img = np.expand_dims(img.transpose(2, 0, 1).astype(np.float32), axis=0)
+            except:
+                continue
             
             ort_inputs = {ort_session.get_inputs()[0].name: img}
             detections = ort_session.run(None, ort_inputs)            
@@ -225,11 +228,13 @@ if __name__ == '__main__':
     opt.best = True
     
     opt.cam = True
+    # opt.video = 'D:\\market\\C032300_002.mp4'
+    # opt.img_dir = 'C:\\Users\\dqg06\\OneDrive\\Desktop\\argoseye\\test_video\\CH4'
+    # opt.img_dir = 'sample'
     
     opt.show_result = True
     # opt.save_video = 'test_ceil.mp4'
-    # opt.video = 'D:\\market\\C032300_002.mp4'
-    # opt.img_dir = 'C:\\Users\\dqg06\\OneDrive\\Desktop\\argoseye\\test_video\\CH4'
+    
     opt.device = 'gpu'
     
     assert opt.model_dir is not None, '모델 경로를 입력해주세요.'

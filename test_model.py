@@ -129,13 +129,17 @@ def test(config:dict):
         img_list = os.listdir(config['img_dir'])
         img_list.sort()
         
-        for img in img_list:
+        for img_file in img_list:
             start = time.time()
             
-            img = cv2.imread(f"{config['img_dir']}/{img}")
-            img = cv2.resize(img, (w_input, h_input))
-            img_out = cv2.resize(img, (w_output, h_output)).astype(np.uint8)
-            img = torch.from_numpy(img).permute([2, 0, 1]).unsqueeze(0).to(config['DEVICE']).float()
+            try:
+                img = cv2.imread(f"{config['img_dir']}/{img_file}")
+                img = cv2.resize(img, (w_input, h_input))
+                img_out = cv2.resize(img, (w_output, h_output)).astype(np.uint8)
+                img = torch.from_numpy(img).permute([2, 0, 1]).unsqueeze(0).to(config['DEVICE']).float()
+            except:
+                continue
+            
             pred = model(img)
             
             for i in range(len(config['TASK'])):
