@@ -38,13 +38,12 @@ def convert_onnx(config:dict):
     
     inner_model = torch.load(f"{config['model_dir']}/{save_file}", map_location=config['DEVICE'])
     if config['METHOD'] == 'ssd':
-        anchor = anchor_generator(config)
-        model = ssd_full_argoseye(config, inner_model, anchor)
+        model = ssd_full_argoseye(config, inner_model)
     
-    model.model = model.model.to(config['DEVICE'])
+    # model.model = model.model.to(config['DEVICE'])
     model.to(config['DEVICE'])
     
-    model.model.eval()
+    # model.model.eval()
     model.eval()
     
     onnx_file = f"{config['model_dir']}/model.onnx"

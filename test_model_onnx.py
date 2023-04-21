@@ -13,10 +13,10 @@ for i in range(1000):
     colormap.append((random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)))
 
 def test(config:dict):
-    if config['device'].lower() == 'cpu': #cpu
+    if config['run_cpu']: #cpu
         ep_list = ['CPUExecutionProvider']
     else: #gpu 
-        ep_list = ['CUDAExecutionProvider'] # , 'CPUExecutionProvider'
+        ep_list = ['CUDAExecutionProvider', 'CPUExecutionProvider']
     
     ort_session = onnxruntime.InferenceSession(f"{config['model_dir']}/model.onnx", providers=ep_list)
     
@@ -51,7 +51,7 @@ def test(config:dict):
             start = time.time()
             
             img = cv2.resize(img, (w_input, h_input))
-            img_out = cv2.resize(img, (w_output, h_output))
+            img_out = cv2.resize(img, (w_output, h_output)).astype(np.uint8)
             img = np.expand_dims(img.transpose(2, 0, 1).astype(np.float32), axis=0)
             
             ort_inputs = {ort_session.get_inputs()[0].name: img}
@@ -99,7 +99,7 @@ def test(config:dict):
             
             img = cv2.imread(f"{config['img_dir']}/{img}")
             img = cv2.resize(img, (w_input, h_input))
-            img_out = cv2.resize(img, (w_output, h_output))
+            img_out = cv2.resize(img, (w_output, h_output)).astype(np.uint8)
             img = np.expand_dims(img.transpose(2, 0, 1).astype(np.float32), axis=0)
             
             ort_inputs = {ort_session.get_inputs()[0].name: img}
@@ -150,7 +150,7 @@ def test(config:dict):
             start = time.time()
             
             img = cv2.resize(img, (w_input, h_input))
-            img_out = cv2.resize(img, (w_output, h_output))
+            img_out = cv2.resize(img, (w_output, h_output)).astype(np.uint8)
             img = np.expand_dims(img.transpose(2, 0, 1).astype(np.float32), axis=0)
             
             ort_inputs = {ort_session.get_inputs()[0].name: img}
@@ -202,7 +202,7 @@ if __name__ == '__main__':
     parser.add_argument('--cam', action='store_true')
     
     # CPU or GPU
-    parser.add_argument('--device', default='cuda:0', type=str)
+    parser.add_argument('--run_cpu', action='store_true')
     
     # Save Video (저장할 비디오 이름름)
     parser.add_argument('--save_video', default=None, type=str)
@@ -223,7 +223,9 @@ if __name__ == '__main__':
     # Test
     opt.model_dir = 'runs/ssd_mobilenet_v2_argoseye_decay'
     opt.best = True
+    
     opt.cam = True
+    
     opt.show_result = True
     # opt.save_video = 'test_ceil.mp4'
     # opt.video = 'D:\\market\\C032300_002.mp4'

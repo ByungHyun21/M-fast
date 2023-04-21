@@ -17,14 +17,18 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 from torch.nn.parallel import DistributedDataParallel as DDP
 
+# TODO:
+# 1. CPU에서 동작하도록 수정
+
 random.seed(100)
 colormap = []
 for i in range(1000):
     colormap.append((random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)))
-    
+
+@torch.no_grad()
 def test(config:dict):
     # Select device
-    if config['device'].lower() == 'cpu':
+    if config['run_cpu']:
         config['DEVICE'] = 'cpu'
     else:
         config['DEVICE'] = 'cuda:0'   
@@ -40,7 +44,7 @@ def test(config:dict):
     
     assert save_file is not None, 'best나 last를 선택해야 합니다.'
     
-    config['DEVICE'] = 'cuda:0'
+    # config['DEVICE'] = 'cuda:0'
     os.environ['MASTER_ADDR'] = str(config['DDP_MASTER_ADDR'])
     os.environ['MASTER_PORT'] = str(config['DDP_MASTER_PORT'])
     
@@ -71,7 +75,7 @@ def test(config:dict):
     if config['save_video'] is not None:
         vc_out = cv2.VideoWriter(f"{config['model_dir']}/{config['save_video']}", cv2.VideoWriter_fourcc(*'DIVX'), 30, (w_output, h_output))
     
-    
+    print(config['DEVICE'])
     # cam
     if config['cam']:
         vc = cv2.VideoCapture(0)
@@ -85,8 +89,8 @@ def test(config:dict):
             start = time.time()
             
             img = cv2.resize(img, (w_input, h_input))
-            img_out = cv2.resize(img, (w_output, h_output))
-            img = torch.from_numpy(img).permute([2, 0, 1]).unsqueeze(0).to(config['DEVICE'])
+            img_out = cv2.resize(img, (w_output, h_output)).astype(np.uint8)
+            img = torch.from_numpy(img).permute([2, 0, 1]).unsqueeze(0).to(config['DEVICE']).float()
             pred = model(img)
             
             for i in range(len(config['TASK'])):
@@ -130,8 +134,8 @@ def test(config:dict):
             
             img = cv2.imread(f"{config['img_dir']}/{img}")
             img = cv2.resize(img, (w_input, h_input))
-            img_out = cv2.resize(img, (w_output, h_output))
-            img = torch.from_numpy(img).permute([2, 0, 1]).unsqueeze(0).to(config['DEVICE'])
+            img_out = cv2.resize(img, (w_output, h_output)).astype(np.uint8)
+            img = torch.from_numpy(img).permute([2, 0, 1]).unsqueeze(0).to(config['DEVICE']).float()
             pred = model(img)
             
             for i in range(len(config['TASK'])):
@@ -178,8 +182,8 @@ def test(config:dict):
             start = time.time()
             
             img = cv2.resize(img, (w_input, h_input))
-            img_out = cv2.resize(img, (w_output, h_output))
-            img = torch.from_numpy(img).permute([2, 0, 1]).unsqueeze(0).to(config['DEVICE'])
+            img_out = cv2.resize(img, (w_output, h_output)).astype(np.uint8)
+            img = torch.from_numpy(img).permute([2, 0, 1]).unsqueeze(0).to(config['DEVICE']).float()
             pred = model(img)
             
             for i in range(len(config['TASK'])):
@@ -227,7 +231,7 @@ if __name__ == '__main__':
     parser.add_argument('--cam', action='store_true')
     
     # CPU or GPU
-    parser.add_argument('--device', default='cuda:0', type=str)
+    parser.add_argument('--run_cpu', action='store_true')
     
     # Save Video (저장할 비디오 이름름)
     parser.add_argument('--save_video', default=None, type=str)
@@ -248,11 +252,15 @@ if __name__ == '__main__':
     # Test
     opt.model_dir = 'runs/ssd_mobilenet_v2_argoseye_decay'
     opt.best = True
+    
     opt.cam = True
-    opt.show_result = True
-    # opt.save_video = 'test_ceil.mp4'
     # opt.video = 'D:\\market\\C032300_002.mp4'
     # opt.img_dir = 'C:\\Users\\dqg06\\OneDrive\\Desktop\\argoseye\\test_video\\CH4'
+    
+    opt.show_result = True
+    # opt.save_video = 'test_ceil.mp4'
+    
+    
     
 
     # read txt to dict

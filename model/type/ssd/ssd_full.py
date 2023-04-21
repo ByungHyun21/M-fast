@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 
+import numpy as np
+
 class ssd_full(nn.Module):
     def __init__(self, config, model, anchor):
         super().__init__()
@@ -10,7 +12,6 @@ class ssd_full(nn.Module):
 
         self.model = model
         self.anchor = torch.from_numpy(anchor).float().to(config['DEVICE'])
-        # self.activation = nn.Sigmoid()
         self.activation = nn.Softmax(dim=2)
         
         self.topk = config['TOPK']
@@ -156,16 +157,22 @@ class ssd_full(nn.Module):
 
 class ssd_full_argoseye(nn.Module):
     # Argoseye에 탑재할 SSD 모델
-    def __init__(self, config, model, anchor):
+    def __init__(self, config, model):
         super().__init__()
         self.device = config['DEVICE']
         self.model_class = config['CLASS']
+        self.n_class = len(self.model_class) + 1
+        
         self.input_size = config['INPUT_SIZE']
-
+        
+        self.scale = config['ANCHOR_SCALE']
+        self.grid_w = config['ANCHOR_GRID_W']
+        self.grid_h = config['ANCHOR_GRID_H']
+        self.anchor_n = config['ANCHOR_N']
+        
         self.model = model
         # self.anchor = torch.from_numpy(anchor).float().to(config['DEVICE'])
-        self.anchor = anchor
-        # self.activation = nn.Sigmoid()
+        
         self.activation = nn.Softmax(dim=-1)
         
         self.topk = config['TOPK']
@@ -174,18 +181,28 @@ class ssd_full_argoseye(nn.Module):
     @torch.no_grad()
     def forward(self, x):
         x = self.model(x)
-        x = self.postprocess(x)
+        
+        class_pred, loc = torch.split(x, [self.n_class, 4], dim=-1)
+        class_pred = self.activation(class_pred)
+        
+        x = torch.concat([class_pred, loc], dim=-1).contiguous()
+        
+        
+        # anchor = self.anchor_generator(self.scale, self.grid_w, self.grid_h, self.anchor_n)
+        # x = self.postprocess(x, anchor)
         return x
     
-    def postprocess(self, x):
+    def postprocess(self, x, anchor):
         """
         x = [batch, anchor_n, 4+1+class_n], 4 = [delta_cx, delta_cy, delta_w, delta_h], 1 = background
         self.anchor = [anchor_n, 4], 4 = [cx, cy, w, h]
         """
+        
+        anchor = torch.tensor(anchor).to(self.device)
         class_pred = x[:, :, 4:]
         d_x, d_y, d_w, d_h = torch.split(x[:, :, :4], [1, 1, 1, 1], dim=2)
         # a_x, a_y, a_w, a_h = torch.split(self.anchor, [1, 1, 1, 1], dim=1)
-        a_x, a_y, a_w, a_h = torch.split(torch.tensor(self.anchor).to(self.device), [1, 1, 1, 1], dim=1)
+        a_x, a_y, a_w, a_h = torch.split(anchor, [1, 1, 1, 1], dim=1)
         
         a_x = a_x.unsqueeze(0)
         a_y = a_y.unsqueeze(0)
@@ -206,3 +223,73 @@ class ssd_full_argoseye(nn.Module):
         
         output = torch.concat([class_pred, x1, y1, x2, y2], dim=-1)
         return output
+    
+    def anchor_generator(self, scale, grid_w, grid_h, anchor_n):
+        a1 = self.get_anchor(grid_h[0], grid_w[0], anchor_n[0], scale[0], scale[1])
+        a2 = self.get_anchor(grid_h[1], grid_w[1], anchor_n[1], scale[1], scale[2])
+        a3 = self.get_anchor(grid_h[2], grid_w[2], anchor_n[2], scale[2], scale[3])
+        a4 = self.get_anchor(grid_h[3], grid_w[3], anchor_n[3], scale[3], scale[4])
+        a5 = self.get_anchor(grid_h[4], grid_w[4], anchor_n[4], scale[4], scale[5])
+        a6 = self.get_anchor(grid_h[5], grid_w[5], anchor_n[5], scale[5], 1.0)
+        
+        anchor = torch.concat([a1, a2, a3, a4, a5, a6], dim=0)
+        
+        return anchor
+
+    def get_anchor(self, fh, fw, n_anchor, s1, s2):
+        grid = torch.linspace(0.0, 1.0, fw+1)
+        grid = (grid[:-1] + grid[1:]) / 2.0
+        grid_w = torch.tile(torch.unsqueeze(grid, 0), (fh, 1))
+        
+        grid = torch.linspace(0.0, 1.0, fh+1)
+        grid = (grid[:-1] + grid[1:]) / 2.0
+        grid_h = torch.tile(torch.unsqueeze(grid, 1), (1, fw))
+        
+        cx = torch.reshape(grid_w, (-1, 1))
+        cy = torch.reshape(grid_h, (-1, 1))
+        
+        na = fw * fh
+
+        # 1: s1
+        aw = s1
+        ah = s1
+        cw = torch.tile(torch.tensor(aw), (na, 1))
+        ch = torch.tile(torch.tensor(ah), (na, 1))
+        a1 = torch.concat([cx, cy, cw, ch], dim=1)
+        
+        # 2: sqrt(s1, s2)
+        aw = torch.sqrt(torch.tensor(s1 * s2))
+        ah = torch.sqrt(torch.tensor(s1 * s2))
+        cw = torch.tile(torch.tensor(aw), (na, 1))
+        ch = torch.tile(torch.tensor(ah), (na, 1))
+        a2 = torch.concat([cx, cy, cw, ch], dim=1)
+        
+        # 3: 2x 1/2x
+        # 1.4 1.61 1.82
+        aw = s1 * torch.sqrt(torch.tensor(2.0))
+        ah = s1 / torch.sqrt(torch.tensor(2.0))
+        
+        cw = torch.tile(torch.tensor(aw), (na, 1))
+        ch = torch.tile(torch.tensor(ah), (na, 1))
+        a3_1 = torch.concat([cx, cy, cw, ch], dim=1)
+        a3_2 = torch.concat([cx, cy, ch, cw], dim=1)
+        
+        if n_anchor != 6:
+            anchors = torch.concat([a1, a2, a3_1, a3_2], dim=1)
+            anchors = torch.reshape(anchors, (-1, 4))
+            anchors = torch.clip(anchors, 0.0, 1.0)
+            return anchors
+        else: 
+            # 4: 3x 1/3x
+            # 1.7 1.95 2.2
+            aw = s1 * torch.sqrt(torch.tensor(3.0))
+            ah = s1 / torch.sqrt(torch.tensor(3.0))
+            
+            cw = torch.tile(torch.tensor(aw), (na, 1))
+            ch = torch.tile(torch.tensor(ah), (na, 1))
+            a4_1 = torch.concat([cx, cy, cw, ch], dim=1)
+            a4_2 = torch.concat([cx, cy, ch, cw], dim=1)
+            anchors = torch.concat([a1, a2, a3_1, a3_2, a4_1, a4_2], dim=1)
+            anchors = torch.reshape(anchors, (-1, 4))
+            anchors = torch.clip(anchors, 0.0, 1.0)
+            return anchors
