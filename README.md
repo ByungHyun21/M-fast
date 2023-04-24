@@ -14,19 +14,19 @@ Mono AI
 ## :one: 사용법
 
 ### :small_blue_diamond: Anaconda를 이용한 실행
-#### 환경 설치
+#### :radio_button: 환경 설치
 ```bash
 conda create -n {env_name} python=3.9
 conda activate {env_name}
 ```
 
-#### 필요 패키지 설치
+#### :radio_button: 필요 패키지 설치
 ```bash
 (env_name) conda install -c conda-forge wandb tqdm opencv -y
 (env_name) conda install pyyaml
 ```
 
-#### 학습
+#### :radio_button: 학습
 ```bash
 CUDA_VISIBLE_DEVICES={gpu} python train_backbone.py # 현재 미지원
 CUDA_VISIBLE_DEVICES={gpu} python train_model.py --config {config_path} {--coco} {--voc} {--crowdhuman} {--argoseye} --wandb {wandb_name} --dataset_path {dataset_path}
@@ -49,12 +49,12 @@ CUDA_VISIBLE_DEVICES='0,1' python train_model.py # 2 GPU Training
 
 ### :small_blue_diamond: Docker를를 이용한 실행
 
-#### ::radio_button:: Nvidia-docker 설치
+#### :radio_button: Nvidia-docker 설치
 ```bash
 TODO
 ```
 
-#### ::radio_button:: Dockerfile을 이용한 실행
+#### :radio_button: Dockerfile을 이용한 실행
 ```bash
 docker build --tag mfast .
 
@@ -104,7 +104,7 @@ mfast
 wandb login xxxxxxxxxxxxxxx
 ```
 
-#### ::radio_button:: 학습
+#### :radio_button: 학습
 ```bash
 python train_backbone.py # 현재 미지원
 python train_model.py --config {config_path} {--coco} {--voc} {--crowdhuman} {--argoseye} --wandb {wandb_name} --dataset_path {dataset_path}
@@ -120,7 +120,7 @@ python train_model.py --config {config_path} {--coco} {--voc} {--crowdhuman} {--
 
 사용하는 GPU: 환경 실행시 설정한 GPU
 
-#### ::radio_button:: Docker 내부에서 실행
+#### :radio_button: Docker 내부에서 실행
 ##### :radio_button: Single Node Single GPU 
 * 인자로 '--coco', '--voc', '--crowdhuman', '--argoseye' 입력시 해당 데이터셋을 사용함 
 ```bash
