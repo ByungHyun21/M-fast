@@ -9,18 +9,18 @@ class loss(nn.Module):
         self.alpha = config['LOSS_ALPHA']
         self.SmoothL1Loss = nn.L1Loss(reduction='mean')
         # self.SmoothL1Loss = nn.HuberLoss(reduction='none', delta=1.0)
-        self.softmax = nn.Softmax(dim=2)
-        self.sigmoid = nn.Sigmoid()
+        # self.softmax = nn.Softmax(dim=2)
+        # self.sigmoid = nn.Sigmoid()
         # self.cross_entropy = nn.CrossEntropyLoss(reduce=False, reduction='none')
         
     def forward(self, pred, gt):
         # pred : batch*anchors*(4+1+class)
         # gt : batch*anchors*(4+1+class)
-        cls_pred = pred[:, :, 4:].contiguous()
-        loc_pred = pred[:, :, :4].contiguous()
+        cls_pred = pred[:, :, :-4].contiguous()
+        loc_pred = pred[:, :, -4:].contiguous()
         
-        cls_gt = gt[:, :, 4:].contiguous()
-        loc_gt = gt[:, :, :4].contiguous()
+        cls_gt = gt[:, :, :-4].contiguous()
+        loc_gt = gt[:, :, -4:].contiguous()
         
         background = cls_gt[:, :, 0].contiguous()
         
@@ -31,8 +31,10 @@ class loss(nn.Module):
         n_hard_neg = npos * 3
 
         # Softmax Cross Entropy
-        cls_softmax = self.softmax(cls_pred)
-        entropy = torch.sum(cls_gt * -torch.log(torch.clip(cls_softmax, 1e-7, 1.0 - 1e-7)), axis=2)
+        # cls_softmax = self.softmax(cls_pred)
+        # entropy = torch.sum(cls_gt * -torch.log(torch.clip(cls_softmax, 1e-7, 1.0 - 1e-7)), axis=2)
+        
+        entropy = torch.sum(cls_gt * -torch.log(torch.clip(cls_pred, 1e-7, 1.0 - 1e-7)), axis=2)
         
         # Positive Loss
         loss_positive = entropy[pos_idx]

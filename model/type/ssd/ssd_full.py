@@ -25,11 +25,11 @@ class ssd_full(nn.Module):
     
     def postprocess(self, x):
         """
-        x = [batch, anchor_n, 4+1+class_n], 4 = [delta_cx, delta_cy, delta_w, delta_h], 1 = background
+        x = [batch, anchor_n, class_n+1+4], 4 = [delta_cx, delta_cy, delta_w, delta_h], 1 = background
         self.anchor = [anchor_n, 4], 4 = [cx, cy, w, h]
         """
-        class_pred = x[:, :, 4:]
-        d_x, d_y, d_w, d_h = torch.split(x[:, :, :4], [1, 1, 1, 1], dim=2)
+        class_pred = x[:, :, :-4]
+        d_x, d_y, d_w, d_h = torch.split(x[:, :, -4:], [1, 1, 1, 1], dim=2)
         a_x, a_y, a_w, a_h = torch.split(self.anchor, [1, 1, 1, 1], dim=1)
         
         a_x.unsqueeze_(0)
@@ -124,6 +124,8 @@ class ssd_full(nn.Module):
 
     def convert_gt(self, gt): 
         # wandb log 같은 곳에서 사용되는 함수
+        # Input: preprocessing 된 데이터
+        # Output: GT 데이터
         # gt: preprocess 이후의 데이터
         # return: preprocess 이전의 데이터
         conf = gt[:, :, 4:]
@@ -173,7 +175,7 @@ class ssd_full_argoseye(nn.Module):
         self.model = model
         # self.anchor = torch.from_numpy(anchor).float().to(config['DEVICE'])
         
-        self.activation = nn.Softmax(dim=-1)
+        # self.activation = nn.Softmax(dim=-1)
         
         self.topk = config['TOPK']
         self.nms_iou_threshold = config['NMS_IOU_THRESHOLD']
@@ -181,11 +183,12 @@ class ssd_full_argoseye(nn.Module):
     @torch.no_grad()
     def forward(self, x):
         x = self.model(x)
+        # x = [batch, anchor_n, [class, loc]]
         
-        class_pred, loc = torch.split(x, [self.n_class, 4], dim=-1)
-        class_pred = self.activation(class_pred)
+        # class_pred, loc = torch.split(x, [self.n_class, 4], dim=2)
+        # class_pred = self.activation(class_pred)
         
-        x = torch.concat([class_pred, loc], dim=-1).contiguous()
+        # x = torch.concat([class_pred, loc], dim=-1).contiguous()
         
         
         # anchor = self.anchor_generator(self.scale, self.grid_w, self.grid_h, self.anchor_n)

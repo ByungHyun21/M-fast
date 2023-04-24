@@ -1,6 +1,6 @@
 import torch.optim as optim
 
-def network(config, rank, istrain):
+def network(config):
     manager = None
 
     lr0 = config['LR'] * config['BATCH_SIZE_MULTI_GPU'] / 32 # batch size 64

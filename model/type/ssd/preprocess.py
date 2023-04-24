@@ -50,7 +50,7 @@ class preprocessor(object):
         delta = np.concatenate([delta_cx, delta_cy, delta_w, delta_h], axis=1)
         delta = delta * pos
         
-        output = np.concatenate([delta, conf], axis=1)
+        output = np.concatenate([conf, delta], axis=1)
         return output
 
     def jaccard_iou(self, box1, box2):

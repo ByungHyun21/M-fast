@@ -11,6 +11,7 @@ from tqdm import tqdm
 from model.type.ssd.ssd_full import ssd_full
 from model.type.ssd.anchor import anchor_generator
 from model.utils import *
+from model.network import network
 
 import torch
 import torch.distributed as dist
@@ -44,16 +45,19 @@ def test(config:dict):
     
     assert save_file is not None, 'best나 last를 선택해야 합니다.'
     
-    # config['DEVICE'] = 'cuda:0'
-    os.environ['MASTER_ADDR'] = str(config['DDP_MASTER_ADDR'])
-    os.environ['MASTER_PORT'] = str(config['DDP_MASTER_PORT'])
+    # # config['DEVICE'] = 'cuda:0'
+    # os.environ['MASTER_ADDR'] = str(config['DDP_MASTER_ADDR'])
+    # os.environ['MASTER_PORT'] = str(config['DDP_MASTER_PORT'])
     
-    dist.init_process_group(backend='gloo', rank=0, world_size=1)
+    # dist.init_process_group(backend='gloo', rank=0, world_size=1)
     
-    inner_model = torch.load(f"{config['model_dir']}/{save_file}", map_location=config['DEVICE'])
-    if config['METHOD'] == 'ssd':
-        anchor = anchor_generator(config)
-        model = ssd_full(config, inner_model, anchor)
+    model, _, _, _, _, _ = network(config)
+    model.model.load_state_dict(torch.load(f"{config['model_dir']}/{save_file}", map_location=config['DEVICE']))
+    
+    # inner_model = torch.load(f"{config['model_dir']}/{save_file}", map_location=config['DEVICE'])
+    # if config['METHOD'] == 'ssd':
+    #     anchor = anchor_generator(config)
+    #     model = ssd_full(config, inner_model, anchor)
     
     model.model = model.model.to(config['DEVICE'])
     model.to(config['DEVICE'])
@@ -254,7 +258,7 @@ if __name__ == '__main__':
     opt = parser.parse_args()
     
     # Test
-    opt.model_dir = 'runs/ssd_mobilenet_v2_argoseye_decay'
+    opt.model_dir = 'runs/ssd_mobilenet_v2_argoseye'
     opt.best = True
     
     opt.cam = True

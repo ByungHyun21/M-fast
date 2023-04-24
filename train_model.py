@@ -28,7 +28,7 @@ def train(rank:int, config:dict):
                             world_size=config['DDP_WORLD_SIZE'], 
                             init_method=config['DDP_INIT_METHOD'])
     
-    model, preprocessor, augmentator, loss_func, optimizer, scheduler = network(config, rank, istrain=True)
+    model, preprocessor, augmentator, loss_func, optimizer, scheduler = network(config)
     model.model = DDP(model.model.to(config['DEVICE']), device_ids=[rank], output_device=rank)
     model.to(config['DEVICE'])
 
@@ -162,7 +162,7 @@ def train(rank:int, config:dict):
                 if rank == 0:
                     if mAPs['metric/mAP_0.5_0.95'] > best_mAP:
                         best_mAP = mAPs['metric/mAP_0.5_0.95']
-                        torch.save(model.model, f"{save_dir}/{run_name}_mAP_best.pth".lower())
+                        torch.save(model.model.module.state_dict(), f"{save_dir}/{run_name}_mAP_best.pth".lower())
                         with open(f"{save_dir}/mAP_best.txt", 'w') as f:
                             for k, v in mAPs.items():
                                 f.write(str(k) + ' : '+ str(v) + '\n')
@@ -182,7 +182,7 @@ def train(rank:int, config:dict):
     # Save Last Model
     if rank == 0:
         if 'mAP' in config['METRIC']:
-            torch.save(model.model, f"{save_dir}/{run_name}_mAP_{best_mAP:.2f}_last.pth".lower())
+            torch.save(model.model.module.state_dict(), f"{save_dir}/{run_name}_mAP_{best_mAP:.2f}_last.pth".lower())
             with open(f"{save_dir}/mAP_last.txt", 'w') as f:
                 for k, v in mAPs.items():
                     f.write(str(k) + ' : '+ str(v) + '\n')

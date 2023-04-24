@@ -13,12 +13,26 @@ Mono AI
 
 ## :one: 사용법
 
-### :small_blue_diamond: Nvidia-docker 설치
+### :small_blue_diamond: Anaconda를 이용한 실행
+```bash
+conda create -n {env_name} python=3.9
+conda activate {env_name}
+```
+
+```bash
+(env_name) conda install -c conda-forge wandb tqdm opencv -y
+(env_name) conda install pyyaml
+```
+
+
+### :small_blue_diamond: Docker를를 이용한 실행
+
+#### ::radio_button:: Nvidia-docker 설치
 ```bash
 TODO
 ```
 
-### :small_blue_diamond: Dockerfile을 이용한 실행
+#### ::radio_button:: Dockerfile을 이용한 실행
 ```bash
 docker build --tag mfast .
 
@@ -39,14 +53,14 @@ docker run -it --rm --gpus=all -v C:\M-fast:/M-fast -v C:\dataset:/dataset --shm
 wandb login xxxxxxxxxxxxxxx
 ```
 
-### :small_blue_diamond: Docker 내부에서 실행
-#### :radio_button: Single Node Single GPU 
+#### ::radio_button:: Docker 내부에서 실행
+##### :radio_button: Single Node Single GPU 
 * 인자로 '--coco', '--voc', '--crowdhuman', '--argoseye' 입력시 해당 데이터셋을 사용함 
 ```bash
 python train_model_single.py --config {config 경로} --coco 
 ```
 
-#### :radio_button: Single Node Multi GPU
+##### :radio_button: Single Node Multi GPU
 * 인자로 '--coco', '--voc', '--crowdhuman', '--argoseye' 입력시 해당 데이터셋을 사용함 
 ```bash
 python train_model.py --config {config 경로} --coco
