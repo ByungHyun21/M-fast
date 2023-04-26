@@ -224,7 +224,7 @@ if __name__ == '__main__':
     opt = parser.parse_args()
     
     # Test
-    opt.model_dir = 'runs/ssd_mobilenet_v2_argoseye_decay'
+    opt.model_dir = 'runs/ssd_mobilenet_v2_argoseye_3'
     opt.best = True
     
     opt.cam = True

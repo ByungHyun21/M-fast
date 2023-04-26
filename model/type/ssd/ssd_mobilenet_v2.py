@@ -100,7 +100,7 @@ class ssd_mobilenet_v2(nn.Module):
         self.backbone_weight = config['BACKBONE_WEIGHT']
         self.pretrained_weight = config['PRETRAINED_WEIGHT']
 
-        self.load_torchvision_weights()
+        # self.load_torchvision_weights()
         self.load_pretrained_weights()
 
     def forward(self, x):

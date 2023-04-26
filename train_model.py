@@ -91,6 +91,7 @@ def train(rank:int, config:dict):
             time_current = time.time()
             time_remain = (time_current - time_start) / (step+1) * (config['STEPLR'][-1] - step)
             print(f"\n\nModel: {config['MODEL']}, epoch: {epoch}, step: {step}, time: {time_current - time_start:.2f}s, remain: {time_remain:.2f}s")
+            print(f"save_dir: {save_dir}")
             
         img_train = []
         gt_train = []
@@ -240,6 +241,14 @@ if __name__ == '__main__':
     parser.add_argument('--wandb', default=None, type=str)
     parser.add_argument('--dataset_path', default=None, type=str)
     opt = parser.parse_args()
+
+    print('config : ', opt.config)
+    print('coco : ', opt.coco)
+    print('voc : ', opt.voc)
+    print('crowdhuman : ', opt.crowdhuman)
+    print('argoseye : ', opt.argoseye)
+    print('wandb : ', opt.wandb)
+    print('dataset_path : ', opt.dataset_path)
 
     #TODO: 테스트용
     # opt.voc = True

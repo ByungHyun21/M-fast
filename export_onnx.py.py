@@ -7,7 +7,7 @@ import cv2
 import numpy as np
 
 from tqdm import tqdm
-from model.type.ssd.ssd_full import ssd_full_argoseye
+from model.type.ssd.ssd_full import ssd_full_onnx
 from model.type.ssd.anchor import anchor_generator
 from model.utils import *
 from model.network import network
@@ -34,12 +34,17 @@ def convert_onnx(config:dict):
     assert save_file is not None, 'best나 last를 선택해야 합니다.'
     
     config['DEVICE'] = 'cuda:0'
+    # os.environ['MASTER_ADDR'] = str(config['DDP_MASTER_ADDR'])
+    # os.environ['MASTER_PORT'] = str(config['DDP_MASTER_PORT'])
+    
+    # dist.init_process_group(backend='gloo', rank=0, world_size=1)
+    
     model, _, _, _, _, _ = network(config)
     model.model.load_state_dict(torch.load(f"{config['model_dir']}/{save_file}", map_location=config['DEVICE']))
-    
+    # inner_model = torch.load(f"{config['model_dir']}/{save_file}", map_location=config['DEVICE'])
     if config['METHOD'] == 'ssd':
         anchor = anchor_generator(config)
-        model = ssd_full_argoseye(config, model.model, anchor)
+        model = ssd_full_onnx(config, model.model, anchor)
     
     model.model = model.model.to(config['DEVICE'])
     model.to(config['DEVICE'])
@@ -50,7 +55,7 @@ def convert_onnx(config:dict):
     model(torch.rand(1, 3, 300, 300).to(config['DEVICE']))
     
     onnx_file = f"{config['model_dir']}/model.onnx"
-    torch.onnx.export(model, torch.rand(1, 3, 300, 300), onnx_file, opset_version=10, export_params=True, verbose=False, do_constant_folding=True)
+    torch.onnx.export(model, torch.rand(1, 3, 300, 300), onnx_file, opset_version=10, export_params=True, verbose=False, do_constant_folding=False)
     print('done')
 
 
