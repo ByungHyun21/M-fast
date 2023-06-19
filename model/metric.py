@@ -1,53 +1,66 @@
 import os
 import cv2
-from pathlib import Path
-from xml.etree.ElementTree import ElementTree as ET
-
+import json
 import torch
-
 import numpy as np
 from tqdm import tqdm
 
 class mAP(object):
-    def __init__(self, config):
+    def __init__(self, cfg):
         super().__init__()
-        self.input_size = config['INPUT_SIZE']
-        self.dataset_path = config['DATASET_PATH']
+        self.input_size = cfg['network']['input_size']
+        self.test = cfg['test']
+        self.model_type = cfg['network']['type']
         
-    def set(self, dataset, category, dataset_class, model_class, mode='101point'):
-        self.dataset = dataset
-        self.dataset_class = dataset_class
-        self.model_class = model_class
+        
+    def set(self, dataset_root, dataset_name, model_classes, mode='101point'):
+        self.dataset_root = dataset_root
+        self.dataset_name = dataset_name
+        self.model_classes = model_classes
         self.mode = mode
-        assert self.dataset is not None, "dataset is not set"
-        assert category is not None, "category is not set"
-        assert self.dataset_class is not None, "dataset_class is not set"
-        assert self.model_class is not None, "model_class is not set"
-        assert self.mode != '11point' or self.mode != '101point' or self.mode != 'all', "mode must be '11point' or 'all'"
-        # 11point = PASCAL VOC
-        # 101point = COCO
-        # all = all points
         
-        image_dir = Path(self.dataset_path) / self.dataset / Path('images_valid')
-        label_dir = Path(self.dataset_path) / self.dataset / Path('annotations_valid')
+        self.data = []
+        self.common_classes = []
+        sub_dirs = os.listdir(f"{self.dataset_root}/{self.dataset_name}/Valid/Label")
+        for sub_dir in sub_dirs:
+            json_list = os.listdir(f"{self.dataset_root}/{self.dataset_name}/Valid/Label/{sub_dir}")
+            
+            for json_file in json_list:
+                json_path = f"{self.dataset_root}/{self.dataset_name}/Valid/Label/{sub_dir}/{json_file}"
+                with open(json_path, 'r') as f:
+                    json_data = json.load(f)
+                
+                isinterest = False
+                objects = json_data['object']
+                for obj in objects:
+                    # check box2d exist
+                    if 'box2d' in obj and obj['class'] in self.model_classes:
+                        isinterest = True
+                        if obj['class'] not in self.common_classes:
+                            self.common_classes.append(obj['class'])
+                            
+                if isinterest:
+                    image_name = json_path.replace('Label', 'Image').replace('json', 'jpg')
+                    self.data.append({'image': image_name, 'label': json_path})
+                
+                if self.test and len(self.data) > 100:
+                    break
+
+        # background class 고려
+        if self.model_type in ['ssd']: 
+            #'background' 삽입
+            self.model_classes.insert(0, 'background')
+                
+        self.model2mAPClass = []
+        for model_class in self.model_classes:
+            if model_class in self.common_classes:
+                self.model2mAPClass.append(self.common_classes.index(model_class))
+            else:
+                self.model2mAPClass.append(-1)
+                
         
-        data = []
-        for sub_dir in category:
-            annos = os.listdir(label_dir / sub_dir)
-            for anno in annos:
-                label = str(label_dir / sub_dir / anno)
-                image = str(image_dir / sub_dir / anno.replace('.xml', '.jpg'))
-                data.append({'image':image, 'label':label})
-        
-        #check dataset
-        valid = np.ones(len(data)).astype(np.bool8)
-        for idx, sample in enumerate(data):
-            isgood = self.check_data(sample)    
-            if not isgood:
-                valid[idx] = False
-        
-        self.data = [item for keep, item in zip(valid, data) if keep] 
-        
+            
+
         #mAP Calculation
         # mAP 0.5:0.05:0.95
         # mAP 0.5
@@ -56,19 +69,19 @@ class mAP(object):
         # mAP medium (object area > (1/6)^2) and (object area < (1/3)^2)
         # mAP large (object area > (1/3)^2))
         self.calculators = []
-        self.calculators.append(mAP_calculator(0, 1, 0.5, len(self.model_class), mode=self.mode))                   # mAP 0.5
-        self.calculators.append(mAP_calculator(0, 1, 0.55, len(self.model_class), mode=self.mode))                  # mAP 0.55
-        self.calculators.append(mAP_calculator(0, 1, 0.6, len(self.model_class), mode=self.mode))                   # mAP 0.6
-        self.calculators.append(mAP_calculator(0, 1, 0.65, len(self.model_class), mode=self.mode))                  # mAP 0.65
-        self.calculators.append(mAP_calculator(0, 1, 0.7, len(self.model_class), mode=self.mode))                   # mAP 0.7
-        self.calculators.append(mAP_calculator(0, 1, 0.75, len(self.model_class), mode=self.mode))                  # mAP 0.75
-        self.calculators.append(mAP_calculator(0, 1, 0.8, len(self.model_class), mode=self.mode))                   # mAP 0.8
-        self.calculators.append(mAP_calculator(0, 1, 0.85, len(self.model_class), mode=self.mode))                  # mAP 0.85
-        self.calculators.append(mAP_calculator(0, 1, 0.9, len(self.model_class), mode=self.mode))                   # mAP 0.9
-        self.calculators.append(mAP_calculator(0, 1, 0.95, len(self.model_class), mode=self.mode))                  # mAP 0.95
-        self.calculators.append(mAP_calculator(0, (1/6)**2, 0.5, len(self.model_class), mode=self.mode))            # mAP small
-        self.calculators.append(mAP_calculator((1/6)**2, (1/3)**2, 0.6, len(self.model_class), mode=self.mode))     # mAP medium
-        self.calculators.append(mAP_calculator((1/3)**2, 1, 0.7, len(self.model_class), mode=self.mode))            # mAP large
+        self.calculators.append(mAP_calculator(0, 1, 0.5, self.common_classes, self.model2mAPClass, mode=self.mode))                   # mAP 0.5
+        self.calculators.append(mAP_calculator(0, 1, 0.55, self.common_classes, self.model2mAPClass, mode=self.mode))                  # mAP 0.55
+        self.calculators.append(mAP_calculator(0, 1, 0.6, self.common_classes, self.model2mAPClass, mode=self.mode))                   # mAP 0.6
+        self.calculators.append(mAP_calculator(0, 1, 0.65, self.common_classes, self.model2mAPClass, mode=self.mode))                  # mAP 0.65
+        self.calculators.append(mAP_calculator(0, 1, 0.7, self.common_classes, self.model2mAPClass, mode=self.mode))                   # mAP 0.7
+        self.calculators.append(mAP_calculator(0, 1, 0.75, self.common_classes, self.model2mAPClass, mode=self.mode))                  # mAP 0.75
+        self.calculators.append(mAP_calculator(0, 1, 0.8, self.common_classes, self.model2mAPClass, mode=self.mode))                   # mAP 0.8
+        self.calculators.append(mAP_calculator(0, 1, 0.85, self.common_classes, self.model2mAPClass, mode=self.mode))                  # mAP 0.85
+        self.calculators.append(mAP_calculator(0, 1, 0.9, self.common_classes, self.model2mAPClass, mode=self.mode))                   # mAP 0.9
+        self.calculators.append(mAP_calculator(0, 1, 0.95, self.common_classes, self.model2mAPClass, mode=self.mode))                  # mAP 0.95
+        self.calculators.append(mAP_calculator(0, (1/6)**2, 0.5, self.common_classes, self.model2mAPClass, mode=self.mode))            # mAP small
+        self.calculators.append(mAP_calculator((1/6)**2, (1/3)**2, 0.6, self.common_classes, self.model2mAPClass, mode=self.mode))     # mAP medium
+        self.calculators.append(mAP_calculator((1/3)**2, 1, 0.7, self.common_classes, self.model2mAPClass, mode=self.mode))            # mAP large
         
         self.mAP = {}
         
@@ -82,7 +95,7 @@ class mAP(object):
         model.eval()
         model.model.eval()
         
-        pbar = tqdm(self.data, desc=self.dataset + ' : calculation TP/FP Table', ncols=0) if rank == 0 else self.data
+        pbar = tqdm(self.data, desc=self.dataset_name + ' : calculation TP/FP Table', ncols=0) if rank == 0 else self.data
         for d in pbar: 
             # mAP caclulation one by one
             img, label, box = self.read_data(d)
@@ -93,7 +106,7 @@ class mAP(object):
             for calculator in self.calculators:
                 calculator.get_data(pred, label, box)
         
-        pbar = tqdm(self.calculators, desc=self.dataset + ' : calculation mAP', ncols=0) if rank == 0 else self.calculators
+        pbar = tqdm(self.calculators, desc=self.dataset_name + ' : calculation mAP', ncols=0) if rank == 0 else self.calculators
         for calculator in pbar:
             calculator.calc_mAP()
         
@@ -111,61 +124,37 @@ class mAP(object):
             self.mAP.update({'metric/mAP_' + str(name[idx]): calculator.get_mAP_mean()})
             
         return self.mAP
-
-    def check_data(self, data):
-        # check label
-        # model.target_class == mAP.target_class
-        error = False
-        valid = False
-        
-        tree = ET().parse(data['label'])
-
-        objects = tree.findall('object')
-        for obj in objects:
-            try:
-                label = obj.find('class').text
-                cx = float(obj.find('cx').text)
-                cy = float(obj.find('cy').text)
-                w = float(obj.find('w').text)
-                h = float(obj.find('h').text)
-                
-                if label in self.model_class:
-                    valid = True
-            except:
-                error = True
-                
-        if error:
-            return False
-        
-        if valid:
-            return True
-        else:
-            return False
         
     def read_data(self, data):
         label = []
         box = []
         
-        tree = ET().parse(data['label'])
-
-        objects = tree.findall('object')
-        for obj in objects:
-            l = obj.find('class').text
-            cx = float(obj.find('cx').text)
-            cy = float(obj.find('cy').text)
-            w = float(obj.find('w').text)
-            h = float(obj.find('h').text)
+        json_file = data['label']
+        
+        with open(json_file) as f:
+            json_data = json.load(f)
             
-            if l not in self.model_class:
+        for obj in json_data['object']:
+            l = obj['class']
+            
+            if l not in self.common_classes:
                 continue
             
+            if 'box2d' not in obj:
+                continue
+            
+            cx = obj['box2d']['cx']
+            cy = obj['box2d']['cy']
+            w = obj['box2d']['w']
+            h = obj['box2d']['h']
+
             #cx, cy, w, h -> x1, y1, x2, y2
             x1 = cx - w/2
             x2 = cx + w/2
             y1 = cy - h/2
             y2 = cy + h/2
             
-            label.append(self.model_class.index(l))
+            label.append(self.model2mAPClass[self.model_classes.index(l)])
             box.append([x1, y1, x2, y2])
             
         img = cv2.imread(data['image'])
@@ -173,7 +162,7 @@ class mAP(object):
         return img, label, box
     
     def print(self):
-        print('dataset :', self.dataset)
+        print('dataset :', self.dataset_name)
         print('mAP 0.5_0.95 :', self.mAP['metric/mAP_0.5_0.95'])
         print('mAP 0.5 :', self.mAP['metric/mAP_0.5'])
         print('mAP 0.75 :', self.mAP['metric/mAP_0.75'])
@@ -182,12 +171,14 @@ class mAP(object):
         print('mAP large :', self.mAP['metric/mAP_large'])
         
 class mAP_calculator(object):
-    def __init__(self, min_area, max_area, iou_threshold, n_class, mode='all'):
+    def __init__(self, min_area, max_area, iou_threshold, common_class, model2mAPClass, mode='all'):
         super().__init__()
         self.min_area = min_area
         self.max_area = max_area
         self.iou_threshold = iou_threshold
-        self.n_class = n_class
+        self.n_class = len(common_class)
+        self.common_class = common_class
+        self.model2mAPClass = model2mAPClass
         
         self.mode = mode
 
@@ -249,7 +240,9 @@ class mAP_calculator(object):
             table.append([])
         
         for p in pred:
-            idx = int(p[0])
+            idx = self.model2mAPClass[int(p[0])]
+            if idx == -1:
+                continue
             table[idx].append(p)
         
         return table

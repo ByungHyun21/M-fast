@@ -2,11 +2,14 @@ import torch
 import torch.nn as nn
 
 class loss(nn.Module):
-    def __init__(self, config):
+    def __init__(self, cfg):
         super().__init__()
         # # # # #
         # Loss Parameter
-        self.alpha = config['LOSS_ALPHA']
+        self.alpha_class = cfg['loss']['alpha']['class']
+        self.alpha_location = cfg['loss']['alpha']['location']
+        
+        
         self.SmoothL1Loss = nn.L1Loss(reduction='mean')
         # self.SmoothL1Loss = nn.HuberLoss(reduction='none', delta=1.0)
         # self.softmax = nn.Softmax(dim=2)
@@ -34,7 +37,11 @@ class loss(nn.Module):
         # cls_softmax = self.softmax(cls_pred)
         # entropy = torch.sum(cls_gt * -torch.log(torch.clip(cls_softmax, 1e-7, 1.0 - 1e-7)), axis=2)
         
-        entropy = torch.sum(cls_gt * -torch.log(torch.clip(cls_pred, 1e-7, 1.0 - 1e-7)), axis=2)
+        # entropy = torch.sum(cls_gt * -torch.log(torch.clip(cls_pred, 1e-7, 1.0 - 1e-7)), axis=2)
+        
+        #sigmoid Cross Entropy
+        entropy = torch.sum(cls_gt * -torch.log(torch.clip(cls_pred, 1e-7, 1.0 - 1e-7)), axis=2) + \
+            torch.sum((1 - cls_gt) * -torch.log(torch.clip(1 - cls_pred, 1e-7, 1.0 - 1e-7)), axis=2)
         
         # Positive Loss
         loss_positive = entropy[pos_idx]
@@ -57,7 +64,7 @@ class loss(nn.Module):
         
         # # # # #
         # Loss All
-        loss_all = loss_conf + self.alpha * loss_loc
+        loss_all = self.alpha_class * loss_conf + self.alpha_location * loss_loc
         
         return loss_all, loss_conf, loss_loc
     

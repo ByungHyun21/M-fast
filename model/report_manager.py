@@ -23,19 +23,18 @@ class AverageMeter:
         self.sum = 0
 
 class report_manager():
-    def __init__(self, config:dict, rank:int):
-        self.wandb_entity = config['WANDB']
+    def __init__(self, cfg:dict, rank:int):
+        self.wandb_entity = cfg['wandb']
 
-        self.loss_name = config['LOSS']
-        n_loss = len(config['LOSS'])
+        self.loss_name = cfg['loss']['type']
+        n_loss = len(cfg['loss']['type'])
         self.loss = []
         for i in range(n_loss):
             self.loss.append(AverageMeter())
         
         self.wandb_enabled = False
         if (rank == 0) and (self.wandb_entity is not None):
-            # wandb.init(project='M-FAST', entity=self.wandb_entity, config=config)
-            wandb.init(project='M-FAST', config=config)
+            wandb.init(project='M-FAST', config=cfg)
             self.wandb_enabled = True
         
     def reset(self):
@@ -53,17 +52,20 @@ class report_manager():
             str_out += f"{self.loss_name[i]}: {self.loss[i].get_mean():.2f}, "
         return str_out
     
-    def get_loss_dict(self, prefix):
+    def get_loss_dict(self):
         dict_out = {}
         for i in range(len(self.loss)):
-            dict_out[prefix + self.loss_name[i]] = self.loss[i].get_mean()
+            dict_out[self.loss_name[i]] = self.loss[i].get_mean()
         return dict_out
     
-    def wandb_report(self, epoch,  dict_out):
+    def wandb_report(self, step, dataset_name, dict_out):
         if not self.wandb_enabled:
             return
         
-        wandb.log(dict_out, step=epoch)
+        for k, v in dict_out.items():
+            wandb.log({dataset_name + '_' + k: v}, step=step)
+        
+        wandb.log(dict_out, step=step)
             
     def wandb_report_object_detection(self, epoch, model):
         if not self.wandb_enabled:

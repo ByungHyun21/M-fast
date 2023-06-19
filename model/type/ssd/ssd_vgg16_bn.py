@@ -9,7 +9,7 @@ import torchvision
 
 from model.layers import *
 
-class ssd_vgg16(nn.Module):
+class ssd_vgg16_bn(nn.Module):
     def __init__(self, config):
         super().__init__()
         # self.ddp_rank = ddp_rank

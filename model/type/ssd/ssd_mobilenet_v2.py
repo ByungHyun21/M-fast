@@ -11,17 +11,17 @@ import torchvision
 from model.layers import *
 
 class ssd_mobilenet_v2(nn.Module):
-    def __init__(self, config):
+    def __init__(self, cfg):
         super().__init__()
-        self.model_name = config['METHOD'] + '_' + config['TYPE']
-        self.nc = len(config['CLASS']) + 1 # number of class, 1 is for background(1)
-        self.device = config['DEVICE']
-        self.model_class = config['CLASS']
+        self.model_name = cfg['exp_name']
+        self.nc = cfg['network']['num_classes'] + 1 # number of class, 1 is for background(1)
+        self.device = cfg['device']
+        self.model_class = cfg['network']['classes']
         
-        anchor_n = config['ANCHOR_N']
+        anchor_n = cfg['anchor']['num_anchor']
 
-        self.mean = torch.tensor(config['MEAN']).view(1, 3, 1, 1).to(self.device)
-        self.std = torch.tensor(config['STD']).view(1, 3, 1, 1).to(self.device)
+        self.mean = torch.tensor(cfg['network']['mean']).view(1, 3, 1, 1).to(self.device)
+        self.std = torch.tensor(cfg['network']['std']).view(1, 3, 1, 1).to(self.device)
 
         self.backbone = nn.Sequential(
             Conv2d(3, 32, s=2, bias=False, act='relu6'),     # 300x300x3 -> 150x150x32
@@ -95,13 +95,12 @@ class ssd_mobilenet_v2(nn.Module):
         self.head_loc5 = Conv2d(256, anchor_n[4]*4, bn=False, act=None)   # 2x2x256 -> 2x2x(anchors*4)
         self.head_loc6 = Conv2d(128, anchor_n[5]*4, bn=False, act=None)   # 1x1x128 -> 1x1x(anchors*4)
         
-        self.softmax = nn.Softmax(dim=-1)
+        self.sigmoid = nn.Sigmoid()
 
-        self.backbone_weight = config['BACKBONE_WEIGHT']
-        self.pretrained_weight = config['PRETRAINED_WEIGHT']
-
-        # self.load_torchvision_weights()
-        self.load_pretrained_weights()
+        if cfg['network']['init_weight'] == 'torchvision':
+            self.load_torchvision_weights()
+        elif cfg['network']['init_weight'] is not None:
+            self.load_pretrained_weights()
 
     def forward(self, x):
         x = x / 255.0
@@ -161,7 +160,7 @@ class ssd_mobilenet_v2(nn.Module):
         loc_x6 = self.review(loc_x6, 4)
         
         classification = torch.cat([cls_x1, cls_x2, cls_x3, cls_x4, cls_x5, cls_x6], dim=1).contiguous()
-        classification = self.softmax(classification)
+        classification = self.sigmoid(classification)
         
         location = torch.cat([loc_x1, loc_x2, loc_x3, loc_x4, loc_x5, loc_x6], dim=1).contiguous()
         
@@ -174,25 +173,24 @@ class ssd_mobilenet_v2(nn.Module):
         return x
     
     def load_torchvision_weights(self):
-        if self.backbone_weight == 'torchvision':
-            state_dict = self.state_dict()
-            param_names = list(state_dict.keys())
+        state_dict = self.state_dict()
+        param_names = list(state_dict.keys())
 
-            pretrained_dict = torchvision.models.mobilenet_v2(weights=torchvision.models.MobileNet_V2_Weights.DEFAULT).state_dict()
-            pretrained_names = list(pretrained_dict.keys())
+        pretrained_dict = torchvision.models.mobilenet_v2(weights=torchvision.models.MobileNet_V2_Weights.DEFAULT).state_dict()
+        pretrained_names = list(pretrained_dict.keys())
 
-            for i, name in enumerate(param_names):
-                if 'backbone' in name or 'extra_1' in name or 'extra_2' in name:
-                    # print(name, '<', pretrained_names[i])
-                    state_dict[name] = pretrained_dict[pretrained_names[i]]
+        for i, name in enumerate(param_names):
+            if 'backbone' in name or 'extra_1' in name or 'extra_2' in name:
+                # print(name, '<', pretrained_names[i])
+                state_dict[name] = pretrained_dict[pretrained_names[i]]
 
-                    if pretrained_names[i][-5:] != name[-5:] or \
-                        pretrained_dict[pretrained_names[i]].shape != state_dict[name].shape:
-                        # print(state_dict[name].shape)
-                        # print(pretrained_dict[pretrained_names[i]].shape)
-                        assert False, 'Pretrained model과 our model의 shape이 일치하지 않음'
+                if pretrained_names[i][-5:] != name[-5:] or \
+                    pretrained_dict[pretrained_names[i]].shape != state_dict[name].shape:
+                    # print(state_dict[name].shape)
+                    # print(pretrained_dict[pretrained_names[i]].shape)
+                    assert False, 'Pretrained model과 our model의 shape이 일치하지 않음'
 
-            self.load_state_dict(state_dict)
+        self.load_state_dict(state_dict)
 
     def load_pretrained_weights(self):
         

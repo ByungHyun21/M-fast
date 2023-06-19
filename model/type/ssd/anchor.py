@@ -25,11 +25,11 @@ example
     [0.5, 0.5, 0.558, 1.0]      # anchor 6
 """
 
-def anchor_generator(config):
-    anchor_scale = config['ANCHOR_SCALE']
-    anchor_grid_w = config['ANCHOR_GRID_W']
-    anchor_grid_h = config['ANCHOR_GRID_H']
-    anchor_n = config['ANCHOR_N']
+def anchor_generator(cfg):
+    anchor_scale = cfg['anchor']['scales']
+    anchor_grid_w = cfg['anchor']['grid_w']
+    anchor_grid_h = cfg['anchor']['grid_h']
+    anchor_n = cfg['anchor']['num_anchor']
     
     a1 = get_anchor(anchor_grid_h[0], anchor_grid_w[0], anchor_n[0], anchor_scale[0], anchor_scale[1])
     a2 = get_anchor(anchor_grid_h[1], anchor_grid_w[1], anchor_n[1], anchor_scale[1], anchor_scale[2])

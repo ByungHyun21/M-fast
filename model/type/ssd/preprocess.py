@@ -1,28 +1,42 @@
 import numpy as np
 
 class preprocessor(object):
-    def __init__(self, config, anchor):
+    def __init__(self, cfg, anchor):
         self.anchor = anchor
-        self.nc = len(config['CLASS'])
+        self.nc = cfg['network']['num_classes']
+        self.classes = cfg['network']['classes']
     
-    def __call__(self, label, box):
-        gt = self.get_delta(label, box)
+    def __call__(self, label):
+        gt = self.get_delta(label)
         return gt
 
     def set_nc(self, nc):
         self.nc = nc
         
-    def get_delta(self, label, box):
-        ngt = len(label)
+    def get_delta(self, label):
+        ngt = len(label['object'])
         
-        gtbox = np.array(box)
+        gtboxes = []
+        gtclasses = []
+        for i in range(ngt):
+            cx = label['object'][i]['box2d']['cx']
+            cy = label['object'][i]['box2d']['cy']
+            w = label['object'][i]['box2d']['w']
+            h = label['object'][i]['box2d']['h']
+            
+            gtboxes.append([cx, cy, w, h])
+            gtclasses.append(self.classes.index(label['object'][i]['class']))
+            
+        
+        gtboxes = np.array(gtboxes)
+        
         conf_table = np.eye(self.nc)
         conf = []
         for i in range(ngt):
-            conf.append(conf_table[label[i]])
+            conf.append(conf_table[gtclasses[i]])
         conf = np.array(conf)
         
-        ious = self.jaccard_iou(self.anchor, gtbox) # (n_anchor, ngt)
+        ious = self.jaccard_iou(self.anchor, gtboxes) # (n_anchor, ngt)
         
         #assure at least 1 gt box
         assure_iou = np.argmax(ious, axis=0) # from gt to anchor
@@ -40,7 +54,7 @@ class preprocessor(object):
         conf = np.concatenate([1-pos, conf], axis=1) # backgorund append
         
         # box regression
-        target = gtbox[maxidx]
+        target = gtboxes[maxidx]
         
         delta_cx = np.expand_dims((target[:, 0] - self.anchor[:, 0]) / self.anchor[:, 2], axis=1) * 10.0
         delta_cy = np.expand_dims((target[:, 1] - self.anchor[:, 1]) / self.anchor[:, 3], axis=1) * 10.0

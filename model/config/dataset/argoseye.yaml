@@ -1,3 +1,0 @@
-DATASET: 'argoseye'
-CATEGORY: ['AE1', 'AE2', 'AE3', 'AE4', 'AE5', 'AE6', 'AE7', 'AE8', 'NE5']
-CLASS: ['person']

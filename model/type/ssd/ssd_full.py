@@ -4,18 +4,18 @@ import torch.nn as nn
 import numpy as np
 
 class ssd_full(nn.Module):
-    def __init__(self, config, model, anchor):
+    def __init__(self, cfg, model, anchor):
         super().__init__()
-        self.device = config['DEVICE']
-        self.model_class = config['CLASS']
-        self.input_size = config['INPUT_SIZE']
+        self.device = cfg['device']
+        self.model_class = cfg['network']['classes']
+        self.input_size = cfg['network']['input_size']
 
         self.model = model
-        self.anchor = torch.from_numpy(anchor).float().to(config['DEVICE'])
+        self.anchor = torch.from_numpy(anchor).float().to(cfg['device'])
         self.activation = nn.Softmax(dim=2)
         
-        self.topk = config['TOPK']
-        self.nms_iou_threshold = config['NMS_IOU_THRESHOLD']
+        self.topk = cfg['nms']['topk']
+        self.nms_iou_threshold = cfg['nms']['iou_threshold']
 
     @torch.no_grad()
     def forward(self, x):
@@ -159,18 +159,18 @@ class ssd_full(nn.Module):
 
 class ssd_full_onnx(nn.Module):
     # Argoseye에 탑재할 SSD 모델
-    def __init__(self, config, model, anchor):
+    def __init__(self, cfg, model, anchor):
         super().__init__()
-        self.device = config['DEVICE']
-        self.model_class = config['CLASS']
+        self.device = cfg['DEVICE']
+        self.model_class = cfg['CLASS']
         self.n_class = len(self.model_class) + 1
         
-        self.input_size = config['INPUT_SIZE']
+        self.input_size = cfg['INPUT_SIZE']
         
-        self.scale = config['ANCHOR_SCALE']
-        self.grid_w = config['ANCHOR_GRID_W']
-        self.grid_h = config['ANCHOR_GRID_H']
-        self.anchor_n = config['ANCHOR_N']
+        self.scale = cfg['anchor']['scales']
+        self.grid_w = cfg['anchor']['grid_w']
+        self.grid_h = cfg['anchor']['grid_h']
+        self.anchor_n = cfg['anchor']['num_anchor']
         
         self.model = model
         self.anchor = torch.from_numpy(anchor).float().to(self.device)
@@ -178,8 +178,8 @@ class ssd_full_onnx(nn.Module):
         
         # self.activation = nn.Softmax(dim=-1)
         
-        self.topk = config['TOPK']
-        self.nms_iou_threshold = config['NMS_IOU_THRESHOLD']
+        self.topk = cfg['nms']['topk']
+        self.nms_iou_threshold = cfg['nms']['iou_threshold']
 
     @torch.no_grad()
     def forward(self, x):
@@ -213,18 +213,18 @@ class ssd_full_onnx(nn.Module):
 
 class ssd_full_argoseye(nn.Module):
     # Argoseye에 탑재할 SSD 모델
-    def __init__(self, config, model, anchor):
+    def __init__(self, cfg, model, anchor):
         super().__init__()
-        self.device = config['DEVICE']
-        self.model_class = config['CLASS']
-        self.n_class = len(self.model_class) + 1
+        self.device = cfg['device']
+        self.model_class = cfg['network']['classes']
+        self.n_class = cfg['network']['num_classes']
         
-        self.input_size = config['INPUT_SIZE']
+        self.input_size = cfg['network']['input_size']
         
-        self.scale = config['ANCHOR_SCALE']
-        self.grid_w = config['ANCHOR_GRID_W']
-        self.grid_h = config['ANCHOR_GRID_H']
-        self.anchor_n = config['ANCHOR_N']
+        self.scale = cfg['anchor']['scales']
+        self.grid_w = cfg['anchor']['grid_w']
+        self.grid_h = cfg['anchor']['grid_h']
+        self.anchor_n = cfg['anchor']['num_anchor']
         
         self.model = model
         self.anchor = anchor
@@ -232,8 +232,8 @@ class ssd_full_argoseye(nn.Module):
         
         # self.activation = nn.Softmax(dim=-1)
         
-        self.topk = config['TOPK']
-        self.nms_iou_threshold = config['NMS_IOU_THRESHOLD']
+        self.topk = cfg['nms']['topk']
+        self.nms_iou_threshold = cfg['nms']['iou_threshold']
 
     @torch.no_grad()
     def forward(self, x):

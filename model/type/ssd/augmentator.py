@@ -1,62 +1,59 @@
 from model.augmentations import *
 
 class augmentator(object):
-    def __init__(self, config):
-        input_size = config['INPUT_SIZE']
+    def __init__(self, cfg):
+        input_size = cfg['network']['input_size']
 
-        hsv_prob = config['HSV_PROB']
-        hsv_hgain = config['HSV_HGAIN']
-        hsv_sgain = config['HSV_SGAIN']
-        hsv_vgain = config['HSV_VGAIN']
+        hsv_cfg = cfg['augmentation']['hsv']
+        mosaic_cfg = cfg['augmentation']['mosaic']
+        flip_cfg = cfg['augmentation']['flip']
+        random_zoomout_cfg = cfg['augmentation']['zoomout']
+        random_crop_cfg = cfg['augmentation']['crop']
+        perspective_cfg = cfg['augmentation']['perspective']
 
-        mosaic_prob = config['MOSAIC_PROB']
-        mosaic_canvas_range = config['MOSAIC_CANVAS_RANGE']
-
-        perspective_prob = config['PERSPECTIVE_PROB']
-        perspective_degree = config['PERSPECTIVE_DEGREE']
-        perspective_translate = config['PERSPECTIVE_TRANSLATE']
-        perspective_scale = config['PERSPECTIVE_SCALE']
-        perspective_shear = config['PERSPECTIVE_SHEAR']
-        perspective_perspective = config['PERSPECTIVE_PERSPECTIVE']
-
-        random_crop_prob = config['RANDOM_CROP_PROB']
-        random_crop_min_overlap = config['RANDOM_CROP_MIN_OVERLAP']
-        
-        random_zoomout_prob = config['RANDOM_ZOOMOUT_PROB']
-        random_zoomout_max_scale = config['RANDOM_ZOOMOUT_MAX_SCALE']
-
-        mean = config['MEAN']
-        std = config['STD']
+        mean = cfg['network']['mean']
+        std = cfg['network']['std']
 
         self.transform_train = [
-            # photometric
-            augment_hsv(hgain=hsv_hgain, sgain=hsv_sgain, vgain=hsv_vgain, p=hsv_prob),
-
             # resize
-            Resize(input_size),
-            RandomVFlip(p=0.5),
+            RandomVFlip(p=flip_cfg['prob']),
 
             # geometric
-            RandomZoomOut(max_scale=random_zoomout_max_scale, mean=mean, p=random_zoomout_prob),
-            RandomCrop(min_overlap=random_crop_min_overlap, p=random_crop_prob),
-            mosaic(canvas_range=mosaic_canvas_range, p=mosaic_prob),
-            random_perspective(degree=perspective_degree, translate=perspective_translate, scale=perspective_scale, shear=perspective_shear, perspective=perspective_perspective, p=perspective_prob),
+            RandomZoomOut(max_scale=random_zoomout_cfg['max_ratio'],
+                          mean=mean,
+                          p=random_zoomout_cfg['prob']),
+            RandomCrop(min_overlap=random_crop_cfg['min_overlap'], 
+                       p=random_crop_cfg['prob']),
+            mosaic(canvas_range=mosaic_cfg['canvas_range'], 
+                   p=mosaic_cfg['prob']),
+            random_perspective(degree=perspective_cfg['degree'], 
+                               translate=perspective_cfg['translate'], 
+                               scale=perspective_cfg['scale'], 
+                               shear=perspective_cfg['shear'], 
+                               perspective=perspective_cfg['perspective'], 
+                               p=perspective_cfg['prob']),
+            
+            # photometric
+            augment_hsv(hgain=hsv_cfg['hgain'], 
+                        sgain=hsv_cfg['sgain'], 
+                        vgain=hsv_cfg['vgain'], 
+                        p=hsv_cfg['prob']),
             
             # resize
             Resize(input_size),
             ]
 
         self.transform_valid = [
-            Resize(input_size),
             RandomVFlip(p=0.5),
+            Resize(input_size),
             ]
             
-    def __call__(self, img, labels, boxes, istrain):
+    def __call__(self, img, labels, istrain):
         if istrain:
             for tform in self.transform_train:
-                img, labels, boxes = tform(img, labels, boxes)
+                img, labels = tform(img, labels)
         else:
             for tform in self.transform_valid:
-                img, labels, boxes = tform(img, labels, boxes)
+                img, labels = tform(img, labels)
         
-        return img, labels, boxes
+        return img, labels

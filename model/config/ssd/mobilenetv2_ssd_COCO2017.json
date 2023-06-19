@@ -1,0 +1,219 @@
+{
+    "test": false,
+    "dataset": "COCO2017",
+    "dataset_root": "D:/",
+    "network": {
+        "classes": [
+            "hot dog",
+            "dog",
+            "potted plant",
+            "tv",
+            "bird",
+            "cat",
+            "horse",
+            "sheep",
+            "cow",
+            "bottle",
+            "couch",
+            "chair",
+            "dining table",
+            "bicycle",
+            "car",
+            "motorcycle",
+            "airplane",
+            "bus",
+            "train",
+            "boat",
+            "person",
+            "stop sign",
+            "umbrella",
+            "tie",
+            "sports ball",
+            "sandwich",
+            "bed",
+            "cell phone",
+            "refrigerator",
+            "clock",
+            "toothbrush",
+            "truck",
+            "traffic light",
+            "fire hydrant",
+            "parking meter",
+            "bench",
+            "elephant",
+            "giraffe",
+            "frisbee",
+            "skis",
+            "snowboard",
+            "kite",
+            "baseball bat",
+            "baseball glove",
+            "skateboard",
+            "surfboard",
+            "tennis racket",
+            "wine glass",
+            "cup",
+            "fork",
+            "knife",
+            "spoon",
+            "bowl",
+            "banana",
+            "apple",
+            "orange",
+            "broccoli",
+            "carrot",
+            "pizza",
+            "donut",
+            "cake",
+            "toilet",
+            "laptop",
+            "mouse",
+            "remote",
+            "keyboard",
+            "microwave",
+            "oven",
+            "toaster",
+            "sink",
+            "book",
+            "vase",
+            "scissors",
+            "teddy bear",
+            "hair drier",
+            "backpack",
+            "handbag",
+            "suitcase",
+            "zebra",
+            "bear"
+        ],
+        "task": [
+            "box2d"
+        ],
+        "type": "ssd",
+        "input_size": [
+            300,
+            300
+        ],
+        "mean": [
+            0.485,
+            0.456,
+            0.406
+        ],
+        "std": [
+            0.229,
+            0.224,
+            0.225
+        ],
+        "backbone": "mobilenet_v2",
+        "neck": "mobilenet_v2_neck",
+        "head": "mobilenet_v2_head",
+        "backbone_freeze": false,
+        "neck_freeze": false,
+        "head_freeze": false,
+        "init_weight": "torchvision"
+    },
+    "anchor": {
+        "num_anchor": [
+            4,
+            6,
+            6,
+            6,
+            4,
+            4
+        ],
+        "scales": [
+            0.1,
+            0.35,
+            0.5,
+            0.65,
+            0.8,
+            0.95
+        ],
+        "grid_w": [
+            19,
+            10,
+            5,
+            3,
+            2,
+            1
+        ],
+        "grid_h": [
+            19,
+            10,
+            5,
+            3,
+            2,
+            1
+        ]
+    },
+    "training": {
+        "batch_size": 32,
+        "end_step": 1000000,
+        "num_workers": 2,
+        "lr0": 0.01,
+        "optimizer": {
+            "type": "sgd",
+            "weight_decay": 0.0005,
+            "momentum": 0.9
+        },
+        "scheduler": {
+            "type": "steplr",
+            "steplr": [
+                720000,
+                860000
+            ],
+            "gamma": 0.1
+        }
+    },
+    "loss": {
+        "type": [
+            "Total",
+            "Class",
+            "Location"
+        ],
+        "alpha": {
+            "class": 1.0,
+            "location": 1.0
+        }
+    },
+    "metric": [
+        [
+            "mAP",
+            "101point"
+        ]
+    ],
+    "nms": {
+        "topk": 200,
+        "iou_threshold": 0.5
+    },
+    "augmentation": {
+        "hsv": {
+            "prob": 1.0,
+            "hgain": 0.015,
+            "sgain": 0.7,
+            "vgain": 0.4
+        },
+        "mosaic": {
+            "prob": 0,
+            "canvas_range": 1.0
+        },
+        "flip": {
+            "prob": 0.5
+        },
+        "crop": {
+            "prob": 1.0,
+            "min_overlap": 0.3
+        },
+        "perspective": {
+            "prob": 0.0,
+            "scale": 0.1,
+            "degree": 10.0,
+            "translate": 0.1,
+            "shear": 5.0,
+            "perspective": 0.0
+        },
+        "zoomout": {
+            "prob": 0.5,
+            "max_ratio": 4.0
+        }
+    }
+}
