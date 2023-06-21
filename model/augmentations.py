@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 import math
 
-import numba
+# import numba
 import copy
 
 
@@ -514,14 +514,8 @@ if __name__ == "__main__":
             std = cfg['network']['std']
 
             self.transform_train = [
-                # photometric
-                augment_hsv(hgain=hsv_cfg['hgain'], 
-                            sgain=hsv_cfg['sgain'], 
-                            vgain=hsv_cfg['vgain'], 
-                            p=hsv_cfg['prob']),
+                
 
-                # resize
-                Resize(input_size),
                 RandomVFlip(p=flip_cfg['prob']),
 
                 # geometric
@@ -538,6 +532,12 @@ if __name__ == "__main__":
                                 shear=perspective_cfg['shear'], 
                                 perspective=perspective_cfg['perspective'], 
                                 p=perspective_cfg['prob']),
+                
+                # photometric
+                augment_hsv(hgain=hsv_cfg['hgain'], 
+                            sgain=hsv_cfg['sgain'], 
+                            vgain=hsv_cfg['vgain'], 
+                            p=hsv_cfg['prob']),
                 
                 # resize
                 Resize(input_size),
@@ -557,7 +557,7 @@ if __name__ == "__main__":
             return img, labels
 
     #read json config
-    with open('model/config/ssd/template.json') as config_file:
+    with open('model/config/ssd/mobilenetv2_ssd_COCO2017.json') as config_file:
         config = json.load(config_file)
     
     aug = augmentator(config)

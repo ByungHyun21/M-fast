@@ -10,8 +10,8 @@ class loss(nn.Module):
         self.alpha_location = cfg['loss']['alpha']['location']
         
         
-        self.SmoothL1Loss = nn.L1Loss(reduction='mean')
-        # self.SmoothL1Loss = nn.HuberLoss(reduction='none', delta=1.0)
+        # self.SmoothL1Loss = nn.L1Loss(reduction='mean')
+        self.SmoothL1Loss = nn.HuberLoss(reduction='mean', delta=1.0)
         # self.softmax = nn.Softmax(dim=2)
         # self.sigmoid = nn.Sigmoid()
         # self.cross_entropy = nn.CrossEntropyLoss(reduce=False, reduction='none')

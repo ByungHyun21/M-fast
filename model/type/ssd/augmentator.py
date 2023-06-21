@@ -15,9 +15,6 @@ class augmentator(object):
         std = cfg['network']['std']
 
         self.transform_train = [
-            # resize
-            RandomVFlip(p=flip_cfg['prob']),
-
             # geometric
             RandomZoomOut(max_scale=random_zoomout_cfg['max_ratio'],
                           mean=mean,
@@ -32,15 +29,17 @@ class augmentator(object):
                                shear=perspective_cfg['shear'], 
                                perspective=perspective_cfg['perspective'], 
                                p=perspective_cfg['prob']),
+            # resize
+            Resize(input_size),
+            
+            # resize
+            RandomVFlip(p=flip_cfg['prob']),
             
             # photometric
             augment_hsv(hgain=hsv_cfg['hgain'], 
                         sgain=hsv_cfg['sgain'], 
                         vgain=hsv_cfg['vgain'], 
                         p=hsv_cfg['prob']),
-            
-            # resize
-            Resize(input_size),
             ]
 
         self.transform_valid = [

@@ -2,7 +2,7 @@ import torch.optim as optim
 
 def network(cfg):
     # 학습률 설정
-    lr0 = cfg['training']['lr0'] * cfg['training']['batch_size'] / 32 # batch size 64
+    lr0 = cfg['training']['lr0'] * cfg['training']['batch_size'] / 192 # batch size 64
 
     # SSD 모델 생성
     if cfg['network']['type'] == 'ssd':
@@ -33,40 +33,47 @@ def network(cfg):
     # CenterNet 모델 생성
        
         
-      
-    return model_full, preprocess, augmentation, losses
-
-def get_optimizer_scheduler(cfg, model):
-    
-    if cfg['training']['optimizer']['type'] == 'sgd':
+    if 'sgd' in cfg['training']['optimizer']:
+        sgd = cfg['training']['optimizer']['sgd']
         optimizer = optim.SGD(model_full.model.parameters(), 
                               lr=lr0, 
-                              momentum=cfg['training']['optimizer']['momentum'], 
-                              weight_decay=cfg['training']['optimizer']['weight_decay'])
-    if cfg['training']['optimizer']['type'] == 'adam':
+                              momentum=sgd['momentum'], 
+                              weight_decay=sgd['weight_decay'])
+    if 'adam' in cfg['training']['optimizer']:
+        adam = cfg['training']['optimizer']['adam']
         optimizer = optim.Adam(model_full.model.parameters(), 
                                lr=lr0, 
-                               betas=(0.9, 0.999), 
-                               weight_decay=cfg['training']['optimizer']['weight_decay'])
+                               betas=(adam['beta1'], adam['beta2']), 
+                               weight_decay=adam['weight_decay'])
     
-    if cfg['training']['scheduler']['type'] == 'steplr':
+    if 'steplr' in cfg['training']['scheduler']:
+        steplr = cfg['training']['scheduler']['steplr']
+        
         def custom_scheduler(step):
-            if step < cfg['training']['scheduler']['steplr'][0]:
+            if step < steplr['epochs'][0]:
                 lr = 1 # learning_rate = lr0 * lr
-            elif step < cfg['training']['scheduler']['steplr'][1]:
-                lr = cfg['training']['scheduler']['gamma']
+            elif step < steplr['epochs'][1]:
+                lr = steplr['gamma']
             else:
-                lr = cfg['training']['scheduler']['gamma'] ** 2
+                lr = steplr['gamma'] ** 2
             return lr
         
         scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=custom_scheduler)
         
-    if cfg['training']['scheduler']['type'] == 'decaylr':
+    if 'decaylr' in cfg['training']['scheduler']:
         def custom_scheduler(step):
             lr = cfg['training']['scheduler']['gamma'] ** (step / 10000)
             return lr
     
         scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=custom_scheduler)
         
-    optimizer.zero_grad()  
-    return optimizer, scheduler
+    if 'cosineannealinglr' in cfg['training']['scheduler']:
+        cosineannealinglr = cfg['training']['scheduler']['cosineannealinglr']
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, 
+                                                         T_max=cosineannealinglr['T_max'], 
+                                                         eta_min=cosineannealinglr['eta_min'],
+                                                         last_epoch=cosineannealinglr['last_epoch'])
+        
+    optimizer.zero_grad()    
+    return model_full, preprocess, augmentation, losses, optimizer, scheduler
+

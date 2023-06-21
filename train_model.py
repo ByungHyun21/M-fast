@@ -13,7 +13,7 @@ from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data import DataLoader
 
 from tqdm import tqdm
-from model.network import network, get_optimizer_scheduler
+from model.network import network
 from model.dataloader import dataset
 from model.metric import mAP
 from model.report_manager import report_manager
@@ -28,7 +28,7 @@ def train(rank:int, cfg:dict):
                             world_size=cfg['DDP']['world_size'], 
                             init_method=cfg['DDP']['init_method'])
     
-    model, preprocessor, augmentator, loss_func = network(cfg)
+    model, preprocessor, augmentator, loss_func, optimizer, scheduler = network(cfg)
     model.model = DDP(model.model.to(cfg['device']), device_ids=[rank], output_device=rank)
     model.to(cfg['device'])
     
@@ -58,7 +58,6 @@ def train(rank:int, cfg:dict):
                       drop_last=True, 
                       sampler=None)
 
-    optimizer, scheduler = get_optimizer_scheduler(cfg, model, len(ds_train))
 
     mAP_use = False
     for idx in range(len(cfg['metric'])):
@@ -99,7 +98,7 @@ def train(rank:int, cfg:dict):
         epoch += 1
         if rank == 0:
             time_current = time.time()
-            time_remain = (time_current - time_start) / (step+1) * (cfg['training']['end_step'] - step)
+            time_remain = (time_current - time_start) / (epoch+1) * (cfg['training']['end_epoch'] - epoch)
             print(f"\n\nModel: {cfg['exp_name']}, epoch: {epoch}, step: {step}, time: {time_current - time_start:.2f}s, remain: {time_remain:.2f}s")
             print(f"save_dir: {save_dir}")
             
@@ -121,7 +120,6 @@ def train(rank:int, cfg:dict):
             optimizer.step()
             optimizer.zero_grad()
             
-            scheduler.step()
             step += 1
             manager.accumulate_loss(loss)
             if rank == 0:
@@ -132,6 +130,8 @@ def train(rank:int, cfg:dict):
                 gt_train.append(gt[0].cpu().numpy())
                 
             dist.barrier()
+            
+        scheduler.step()
             
         dict_train = manager.get_loss_dict()
         manager.wandb_report(step, 'train/', dict_train)
@@ -246,7 +246,7 @@ if __name__ == '__main__':
     print('config : ', opt.config)
 
     #TODO: 테스트용
-    cfg['wandb'] = 'byunghyun'
+    # cfg['wandb'] = 'byunghyun'
     # cfg['test'] = True
     
     # DDP 에 사용할 포트를 사용하지 않는 포트중 임의로 선택

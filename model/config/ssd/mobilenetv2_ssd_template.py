@@ -1,13 +1,21 @@
 import json
 
 cfg = dict()
-cfg['test'] = False
 
-cfg['dataset'] = 'COCO2017'
-cfg['dataset_root'] = '/mnt/dataset'
+cfg['dataset'] = list()
+cfg['dataset_root'] = 'D:/'
+
+coco = dict()
+coco['name'] = 'COCO2017'
+coco['class'] = ['person']
+cfg['dataset'].append(coco)
+
+argoseye = dict()
+argoseye['name'] = 'Argoseye'
+argoseye['class'] = ['person']
+cfg['dataset'].append(argoseye)
 
 cfg['network'] = dict()
-cfg['network']['classes'] = ["hot dog", "dog", "potted plant", "tv", "bird", "cat", "horse", "sheep", "cow", "bottle", "couch", "chair", "dining table", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "boat", "person", "stop sign", "umbrella", "tie", "sports ball", "sandwich", "bed", "cell phone", "refrigerator", "clock", "toothbrush", "truck", "traffic light", "fire hydrant", "parking meter", "bench", "elephant", "giraffe", "frisbee", "skis", "snowboard", "kite", "baseball bat", "baseball glove", "skateboard", "surfboard", "tennis racket", "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana", "apple", "orange", "broccoli", "carrot", "pizza", "donut", "cake", "toilet", "laptop", "mouse", "remote", "keyboard", "microwave", "oven", "toaster", "sink", "book", "vase", "scissors", "teddy bear", "hair drier", "backpack", "handbag", "suitcase", "zebra", "bear"]
 cfg['network']['task'] = ['box2d']
 cfg['network']['type'] = 'ssd'
 cfg['network']['input_size'] = [300, 300]
@@ -30,21 +38,18 @@ cfg['anchor']['grid_w'] = [19, 10, 5, 3, 2, 1]
 cfg['anchor']['grid_h'] = [19, 10, 5, 3, 2, 1]
 
 cfg['training'] = dict()
-cfg['training']['batch_size'] = 192
-cfg['training']['end_epoch'] = 600
+cfg['training']['batch_size'] = 32
+cfg['training']['end_step'] = 1000000
 cfg['training']['num_workers'] = 2
-cfg['training']['lr0'] = 0.015
+cfg['training']['lr0'] = 1e-2
 cfg['training']['optimizer'] = dict()
-cfg['training']['optimizer']['sgd'] = dict()
-cfg['training']['optimizer']['sgd']['type'] = 'sgd'
-cfg['training']['optimizer']['sgd']['weight_decay'] = 0.4e-5
-cfg['training']['optimizer']['sgd']['momentum'] = 0.9
+cfg['training']['optimizer']['type'] = 'sgd'
+cfg['training']['optimizer']['weight_decay'] = 5e-4
+cfg['training']['optimizer']['momentum'] = 0.9
 cfg['training']['scheduler'] = dict()
-cfg['training']['scheduler']['cosineannealinglr'] = dict()
-cfg['training']['scheduler']['cosineannealinglr']['T_max'] = 600
-cfg['training']['scheduler']['cosineannealinglr']['eta_min'] = 1e-5
-cfg['training']['scheduler']['cosineannealinglr']['last_epoch'] = -1
-
+cfg['training']['scheduler']['type'] = 'steplr'
+cfg['training']['scheduler']['steplr'] = [720000, 860000]
+cfg['training']['scheduler']['gamma'] = 0.1
 
 
 cfg['loss'] = dict()
@@ -98,13 +103,10 @@ cfg['augmentation']['zoomout']['max_ratio'] = 4.0
 
 if __name__ == "__main__":
     import os 
-    
-    file_name = __file__.replace('.py', '.json')
-    
-    if os.path.exists(file_name):
-        os.remove(file_name)
+    if os.path.exists('model/config/ssd/template.json'):
+        os.remove('model/config/ssd/template.json')
     
     #save json
-    with open(file_name, 'w', encoding='utf-8') as f:
+    with open('model/config/ssd/template.json', 'w', encoding='utf-8') as f:
         json.dump(cfg, f, indent=4)
         

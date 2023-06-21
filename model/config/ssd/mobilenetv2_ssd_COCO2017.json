@@ -1,7 +1,7 @@
 {
     "test": false,
     "dataset": "COCO2017",
-    "dataset_root": "D:/",
+    "dataset_root": "/mnt/dataset",
     "network": {
         "classes": [
             "hot dog",
@@ -146,22 +146,23 @@
         ]
     },
     "training": {
-        "batch_size": 32,
-        "end_step": 1000000,
+        "batch_size": 192,
+        "end_epoch": 600,
         "num_workers": 2,
-        "lr0": 0.01,
+        "lr0": 0.015,
         "optimizer": {
-            "type": "sgd",
-            "weight_decay": 0.0005,
-            "momentum": 0.9
+            "sgd": {
+                "type": "sgd",
+                "weight_decay": 4e-06,
+                "momentum": 0.9
+            }
         },
         "scheduler": {
-            "type": "steplr",
-            "steplr": [
-                720000,
-                860000
-            ],
-            "gamma": 0.1
+            "cosineannealinglr": {
+                "T_max": 600,
+                "eta_min": 1e-05,
+                "last_epoch": -1
+            }
         }
     },
     "loss": {
