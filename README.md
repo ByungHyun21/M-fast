@@ -29,16 +29,11 @@ conda activate {env_name}
 #### :radio_button: 학습
 ```bash
 CUDA_VISIBLE_DEVICES={gpu} python train_backbone.py # 현재 미지원
-CUDA_VISIBLE_DEVICES={gpu} python train_model.py --config {config_path} {--coco} {--voc} {--crowdhuman} {--argoseye} --wandb {wandb_name} --dataset_path {dataset_path}
+CUDA_VISIBLE_DEVICES={gpu} python train_model.py --config {config_path}  --wandb {wandb_name}
 ```
 
 * --config {config_path}: 학습할 네트워크 관련 설정파일(.yaml) 경로
-* --coco: COCO2017 데이터셋 사용
-* --voc: VOC0712 데이터셋 사용
-* --crowdhuman: Crowd Human 데이터셋 사용
-* --argoseye: Argoseye 데이터셋 사용
 * --wandb {wandb_name}: Wandb 시각화에 사용할 계정명
-* --dataset_path {dataset_path}: dataset root 경로
 
 예시
 ```bash
@@ -107,16 +102,11 @@ wandb login xxxxxxxxxxxxxxx
 #### :radio_button: 학습
 ```bash
 python train_backbone.py # 현재 미지원
-python train_model.py --config {config_path} {--coco} {--voc} {--crowdhuman} {--argoseye} --wandb {wandb_name} --dataset_path {dataset_path}
+python train_model.py --config {config_path} --wandb {wandb_name}
 ```
 
 * --config {config_path}: 학습할 네트워크 관련 설정파일(.yaml) 경로
-* --coco: COCO2017 데이터셋 사용
-* --voc: VOC0712 데이터셋 사용
-* --crowdhuman: Crowd Human 데이터셋 사용
-* --argoseye: Argoseye 데이터셋 사용
 * --wandb {wandb_name}: Wandb 시각화에 사용할 계정명
-* --dataset_path {dataset_path}: 설정안해도 무방 (기본값: /dataset)
 
 사용하는 GPU: 환경 실행시 설정한 GPU
 

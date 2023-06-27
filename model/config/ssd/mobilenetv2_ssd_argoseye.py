@@ -3,11 +3,11 @@ import json
 cfg = dict()
 cfg['test'] = False
 
-cfg['dataset'] = 'COCO2017'
+cfg['dataset'] = 'Argoseye'
 cfg['dataset_root'] = '/mnt/dataset'
 
 cfg['network'] = dict()
-cfg['network']['classes'] = ["hot dog", "dog", "potted plant", "tv", "bird", "cat", "horse", "sheep", "cow", "bottle", "couch", "chair", "dining table", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "boat", "person", "stop sign", "umbrella", "tie", "sports ball", "sandwich", "bed", "cell phone", "refrigerator", "clock", "toothbrush", "truck", "traffic light", "fire hydrant", "parking meter", "bench", "elephant", "giraffe", "frisbee", "skis", "snowboard", "kite", "baseball bat", "baseball glove", "skateboard", "surfboard", "tennis racket", "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana", "apple", "orange", "broccoli", "carrot", "pizza", "donut", "cake", "toilet", "laptop", "mouse", "remote", "keyboard", "microwave", "oven", "toaster", "sink", "book", "vase", "scissors", "teddy bear", "hair drier", "backpack", "handbag", "suitcase", "zebra", "bear"]
+cfg['network']['classes'] = ["person"]
 cfg['network']['task'] = ['box2d']
 cfg['network']['type'] = 'ssd'
 cfg['network']['input_size'] = [300, 300]

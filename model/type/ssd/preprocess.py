@@ -24,6 +24,13 @@ class preprocessor(object):
             w = label['object'][i]['box2d']['w']
             h = label['object'][i]['box2d']['h']
             
+            if w <= 0 or h <= 0:
+                print(cx, cy, w, h)
+                
+            
+            assert w > 0, f"Error: {label['object'][i]['box2d']}"
+            assert h > 0, f"Error: {label['object'][i]['box2d']}"
+            
             gtboxes.append([cx, cy, w, h])
             gtclasses.append(self.classes.index(label['object'][i]['class']))
             

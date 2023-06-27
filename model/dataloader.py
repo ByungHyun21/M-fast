@@ -69,7 +69,7 @@ class dataset(Dataset):
                 image_path = f"{dataset_path}/{purpose}/Image/{sub_dir}/{json_file.replace('.json', '.jpg')}"
                 self.annotations[image_path] = valid_labels
             
-                if cfg['test'] and len(self.annotations) > 100:
+                if cfg['test'] and len(self.annotations) > 500:
                     break
         
         self.annotation_keys, self.annotation_labels = list(self.annotations.keys()), list(self.annotations.values())

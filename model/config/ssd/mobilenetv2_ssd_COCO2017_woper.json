@@ -205,7 +205,7 @@
             "min_overlap": 0.3
         },
         "perspective": {
-            "prob": 1.0,
+            "prob": 0.0,
             "scale": 0.1,
             "degree": 10.0,
             "translate": 0.1,
