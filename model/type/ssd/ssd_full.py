@@ -161,11 +161,11 @@ class ssd_full_onnx(nn.Module):
     # Argoseye에 탑재할 SSD 모델
     def __init__(self, cfg, model, anchor):
         super().__init__()
-        self.device = cfg['DEVICE']
-        self.model_class = cfg['CLASS']
+        self.device = cfg['device']
+        self.model_class = cfg['network']['classes']
         self.n_class = len(self.model_class) + 1
         
-        self.input_size = cfg['INPUT_SIZE']
+        self.input_size = cfg['network']['input_size']
         
         self.scale = cfg['anchor']['scales']
         self.grid_w = cfg['anchor']['grid_w']

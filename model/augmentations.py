@@ -41,79 +41,87 @@ class RandomZoomOut(object):
         if random.random() > self.p:
             return img, label
         
-        zoom_out_scale = None
-        
-        min_wh = 1
-        for obj in label['object']:
-            if 'box2d' in obj:
-                w = obj['box2d']['w']
-                h = obj['box2d']['h']
-                
-                min_wh = min(min_wh, w, h)
-                
-        if min_wh < 0.05:
-            zoom_out_scale = 1.0
-        else:
-            zoom_out_scale = min(min_wh / 0.05, self.max_scale)
-        
-        if zoom_out_scale is None:
-            zoom_out_scale = self.max_scale
-        
-        original_h, original_w, _ = img.shape
-        scale = random.uniform(1, zoom_out_scale)
-        new_w = int(original_w * scale)
-        new_h = int(original_h * scale)
-
-        background = np.zeros((new_h, new_w, 3), dtype=np.uint8) + np.multiply(self.mean, 255).astype(np.uint8)
-
-        left = int(random.uniform(0, new_w - original_w))
-        right = left + original_w
-        top = int(random.uniform(0, new_h - original_h))
-        bottom = top + original_h
-        
-        background[top:bottom, left:right, :] = img
-
-        
-        for obj in label['object']:
-            if 'box2d' in obj:
-                cx = obj['box2d']['cx']
-                cy = obj['box2d']['cy']
-                w = obj['box2d']['w']
-                h = obj['box2d']['h']
-                
-                # cx, cy, w, h -> x1, y1, x2, y2
-                x1 = (cx - w / 2.0) * original_w
-                y1 = (cy - h / 2.0) * original_h
-                x2 = (cx + w / 2.0) * original_w
-                y2 = (cy + h / 2.0) * original_h
-
-                # transform 
-                x1 = x1 + left
-                y1 = y1 + top
-                x2 = x2 + left
-                y2 = y2 + top
-
-                # x1, y1, x2, y2 -> cx, cy, w, h
-                obj['box2d']['cx'] = (x1 + x2) / 2.0 / new_w
-                obj['box2d']['cy'] = (y1 + y2) / 2.0 / new_h
-                obj['box2d']['w'] = (x2 - x1) / new_w
-                obj['box2d']['h'] = (y2 - y1) / new_h
-                
-            if 'polygon' in obj:
-                for poly in obj['polygon']:
-                    aspect_width = original_w / new_w
-                    aspect_height = original_h / new_h
+        while_cnt = 0
+        while while_cnt < 100:
+            while_cnt += 1
+            
+            label_new = copy.deepcopy(label)
+            
+            zoom_out_scale = None
+            
+            min_wh = 1
+            for obj in label_new['object']:
+                if 'box2d' in obj:
+                    w = obj['box2d']['w']
+                    h = obj['box2d']['h']
                     
-                    offset_left = left / new_w
-                    offset_top = top / new_h
+                    min_wh = min(min_wh, w, h)
                     
-                    for i in range(len(poly)):
-                        poly[i][0] = (poly[i][0] * aspect_width + offset_left)
-                        poly[i][1] = (poly[i][1] * aspect_height + offset_top)
+            if min_wh < 0.05:
+                zoom_out_scale = 1.0
+            else:
+                zoom_out_scale = min(min_wh / 0.05, self.max_scale)
+            
+            if zoom_out_scale is None:
+                zoom_out_scale = self.max_scale
+            
+            original_h, original_w, _ = img.shape
+            scale = random.uniform(1, zoom_out_scale)
+            new_w = int(original_w * scale)
+            new_h = int(original_h * scale)
+
+            background = np.zeros((new_h, new_w, 3), dtype=np.uint8) + np.multiply(self.mean, 255).astype(np.uint8)
+
+            left = int(random.uniform(0, new_w - original_w))
+            right = left + original_w
+            top = int(random.uniform(0, new_h - original_h))
+            bottom = top + original_h
+            
+            background[top:bottom, left:right, :] = img
+
+            
+            for obj in label_new['object']:
+                if 'box2d' in obj:
+                    cx = obj['box2d']['cx']
+                    cy = obj['box2d']['cy']
+                    w = obj['box2d']['w']
+                    h = obj['box2d']['h']
+                    
+                    # cx, cy, w, h -> x1, y1, x2, y2
+                    x1 = (cx - w / 2.0) * original_w
+                    y1 = (cy - h / 2.0) * original_h
+                    x2 = (cx + w / 2.0) * original_w
+                    y2 = (cy + h / 2.0) * original_h
+
+                    # transform 
+                    x1 = x1 + left
+                    y1 = y1 + top
+                    x2 = x2 + left
+                    y2 = y2 + top
+
+                    # x1, y1, x2, y2 -> cx, cy, w, h
+                    obj['box2d']['cx'] = (x1 + x2) / 2.0 / new_w
+                    obj['box2d']['cy'] = (y1 + y2) / 2.0 / new_h
+                    obj['box2d']['w'] = (x2 - x1) / new_w
+                    obj['box2d']['h'] = (y2 - y1) / new_h
+                    
+                if 'polygon' in obj:
+                    for poly in obj['polygon']:
+                        aspect_width = original_w / new_w
+                        aspect_height = original_h / new_h
+                        
+                        offset_left = left / new_w
+                        offset_top = top / new_h
+                        
+                        for i in range(len(poly)):
+                            poly[i][0] = (poly[i][0] * aspect_width + offset_left)
+                            poly[i][1] = (poly[i][1] * aspect_height + offset_top)
+            
+
+            img = cv2.resize(background, (original_w, original_h))
+
+            return img, label_new
         
-
-        img = cv2.resize(background, (original_w, original_h))
-
         return img, label
 
 
@@ -135,8 +143,9 @@ class RandomCrop(object):
         
         original_h, original_w, _ = img.shape
 
-        max_trials = 50
-        for _ in range(max_trials):
+        while_cnt = 0
+        while while_cnt < 100:
+            while_cnt += 1
             crop_w = random.uniform(0.3, 1) * original_w
             crop_h = random.uniform(0.3, 1) * original_h
 
@@ -191,6 +200,9 @@ class RandomCrop(object):
                         obj['box2d']['w'] = new_w
                         obj['box2d']['h'] = new_h
                         
+                        if new_w < 0.01 or new_h < 0.01:
+                            continue
+                        
                         new_label['object'].append(copy.deepcopy(obj))  
                 
                 if 'polygon' in obj:                    
@@ -229,21 +241,29 @@ class RandomCrop(object):
                     
                     for i in range(len(contours)):
                         new_poly = contours[i].astype(np.float32)
-                        new_poly[:, :, 0] = new_poly[:, :, 0] / crop_w
-                        new_poly[:, :, 1] = new_poly[:, :, 1] / crop_h
+                        if new_poly.ndim == 3:
+                            new_poly = new_poly.squeeze()
+                        if new_poly.ndim < 2:
+                            continue
+                            
+                        new_poly[:, 0] = new_poly[:, 0] / crop_w
+                        new_poly[:, 1] = new_poly[:, 1] / crop_h
                         
                         new_obj['polygon'].append(new_poly.tolist())
                         
-                        min_x = min(min_x, np.min(new_poly[:, :, 0]))
-                        max_x = max(max_x, np.max(new_poly[:, :, 0]))
-                        min_y = min(min_y, np.min(new_poly[:, :, 1]))
-                        max_y = max(max_y, np.max(new_poly[:, :, 1]))
+                        min_x = min(min_x, np.min(new_poly[:, 0]))
+                        max_x = max(max_x, np.max(new_poly[:, 0]))
+                        min_y = min(min_y, np.min(new_poly[:, 1]))
+                        max_y = max(max_y, np.max(new_poly[:, 1]))
                         
                     new_obj['box2d'] = dict()
                     new_obj['box2d']['cx'] = (min_x + max_x) / 2.0
                     new_obj['box2d']['cy'] = (min_y + max_y) / 2.0
                     new_obj['box2d']['w'] = max_x - min_x
                     new_obj['box2d']['h'] = max_y - min_y
+                    
+                    if new_obj['box2d']['w'] < 0.01 or new_obj['box2d']['h'] < 0.01:
+                        continue
                     
                     new_label['object'].append(new_obj)
 
@@ -701,11 +721,12 @@ if __name__ == "__main__":
                             p=hsv_cfg['prob']),
                 
                 # geometric
+                RandomCrop(min_overlap=random_crop_cfg['min_overlap'], 
+                        p=random_crop_cfg['prob']),
                 RandomZoomOut(max_scale=random_zoomout_cfg['max_ratio'],
                             mean=mean,
                             p=random_zoomout_cfg['prob']),
-                RandomCrop(min_overlap=random_crop_cfg['min_overlap'], 
-                        p=random_crop_cfg['prob']),
+                
                 # mosaic(canvas_range=mosaic_cfg['canvas_range'], 
                 #     p=mosaic_cfg['prob']),
                 random_perspective(degree=perspective_cfg['degree'], 
@@ -739,8 +760,8 @@ if __name__ == "__main__":
     
     aug = augmentator(config)
     
-    # sample_list = ['000000000785', '000000001000', '000000051976', '000000019432']
-    sample_list = ['000000019432']
+    sample_list = ['000000000785', '000000001000', '000000051976', '000000019432']
+    # sample_list = ['000000019432']
     
     cnt = 0
     while True:

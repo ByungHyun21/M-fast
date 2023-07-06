@@ -1,20 +1,30 @@
 {
-    "dataset": [
-        {
-            "name": "COCO2017",
-            "class": [
-                "person"
-            ]
-        },
-        {
-            "name": "Argoseye",
-            "class": [
-                "person"
-            ]
-        }
-    ],
-    "dataset_root": "D:/",
+    "test": false,
+    "dataset": "VOC0712",
+    "dataset_root": "/mnt/dataset",
     "network": {
+        "classes": [
+            "aeroplane",
+            "bicycle",
+            "bird",
+            "boat",
+            "bottle",
+            "bus",
+            "car",
+            "cat",
+            "chair",
+            "cow",
+            "diningtable",
+            "dog",
+            "horse",
+            "motorbike",
+            "person",
+            "pottedplant",
+            "sheep",
+            "sofa",
+            "train",
+            "tvmonitor"
+        ],
         "task": [
             "box2d"
         ],
@@ -33,9 +43,9 @@
             0.224,
             0.225
         ],
-        "backbone": "mobilenet_v2",
-        "neck": "mobilenet_v2_neck",
-        "head": "mobilenet_v2_head",
+        "backbone": "vgg16_bn",
+        "neck": "vgg16_neck",
+        "head": "vgg16_head",
         "backbone_freeze": false,
         "neck_freeze": false,
         "head_freeze": false,
@@ -52,47 +62,47 @@
         ],
         "scales": [
             0.1,
-            0.35,
-            0.5,
-            0.65,
-            0.8,
-            0.95
+            0.2,
+            0.375,
+            0.55,
+            0.725,
+            0.9
         ],
         "grid_w": [
+            38,
             19,
             10,
             5,
             3,
-            2,
             1
         ],
         "grid_h": [
+            38,
             19,
             10,
             5,
             3,
-            2,
             1
         ]
     },
     "training": {
-        "batch_size": 32,
-        "end_step": 500000,
-        "num_workers": 2,
-        "lr0": 0.01,
+        "batch_size": 8,
+        "end_epoch": 300,
+        "num_workers": 4,
+        "lr0": 0.24,
         "optimizer": {
-            "type": "sgd",
-            "weight_decay": 0.0005,
-            "momentum": 0.9
+            "sgd": {
+                "type": "sgd",
+                "weight_decay": 4e-06,
+                "momentum": 0.9
+            }
         },
         "scheduler": {
-            "type": "steplr",
-            "steplr": [
-                720000,
-                860000,
-                1000000
-            ],
-            "gamma": 0.1
+            "cosineannealinglr": {
+                "T_max": 300,
+                "eta_min": 1e-05,
+                "last_epoch": -1
+            }
         }
     },
     "loss": {
@@ -118,7 +128,7 @@
     },
     "augmentation": {
         "hsv": {
-            "prob": 1.0,
+            "prob": 0.0,
             "hgain": 0.015,
             "sgain": 0.7,
             "vgain": 0.4
@@ -131,11 +141,11 @@
             "prob": 0.5
         },
         "crop": {
-            "prob": 1.0,
+            "prob": 0.0,
             "min_overlap": 0.3
         },
         "perspective": {
-            "prob": 0.0,
+            "prob": 0,
             "scale": 0.1,
             "degree": 10.0,
             "translate": 0.1,
@@ -143,7 +153,7 @@
             "perspective": 0.0
         },
         "zoomout": {
-            "prob": 0.5,
+            "prob": 0.0,
             "max_ratio": 4.0
         }
     }

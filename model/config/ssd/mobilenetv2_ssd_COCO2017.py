@@ -31,8 +31,8 @@ cfg['anchor']['grid_h'] = [19, 10, 5, 3, 2, 1]
 
 cfg['training'] = dict()
 cfg['training']['batch_size'] = 192
-cfg['training']['end_epoch'] = 700
-cfg['training']['num_workers'] = 2
+cfg['training']['end_epoch'] = 600
+cfg['training']['num_workers'] = 8
 cfg['training']['lr0'] = 0.015
 cfg['training']['optimizer'] = dict()
 cfg['training']['optimizer']['sgd'] = dict()
@@ -41,7 +41,7 @@ cfg['training']['optimizer']['sgd']['weight_decay'] = 0.4e-5
 cfg['training']['optimizer']['sgd']['momentum'] = 0.9
 cfg['training']['scheduler'] = dict()
 cfg['training']['scheduler']['cosineannealinglr'] = dict()
-cfg['training']['scheduler']['cosineannealinglr']['T_max'] = 700
+cfg['training']['scheduler']['cosineannealinglr']['T_max'] = 600
 cfg['training']['scheduler']['cosineannealinglr']['eta_min'] = 1e-5
 cfg['training']['scheduler']['cosineannealinglr']['last_epoch'] = -1
 
@@ -77,7 +77,7 @@ cfg['augmentation']['crop']['prob'] = 1.0
 cfg['augmentation']['crop']['min_overlap'] = 0.3
 
 cfg['augmentation']['perspective'] = dict()
-cfg['augmentation']['perspective']['prob'] = 1.0
+cfg['augmentation']['perspective']['prob'] = 0
 cfg['augmentation']['perspective']['scale'] = 0.1
 cfg['augmentation']['perspective']['degree'] = 10.0
 cfg['augmentation']['perspective']['translate'] = 0.1

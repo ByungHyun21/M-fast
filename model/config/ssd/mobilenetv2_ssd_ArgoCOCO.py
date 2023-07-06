@@ -1,21 +1,13 @@
 import json
 
 cfg = dict()
+cfg['test'] = False
 
-cfg['dataset'] = list()
-cfg['dataset_root'] = 'D:/'
-
-coco = dict()
-coco['name'] = 'COCO2017'
-coco['class'] = ['person']
-cfg['dataset'].append(coco)
-
-argoseye = dict()
-argoseye['name'] = 'Argoseye'
-argoseye['class'] = ['person']
-cfg['dataset'].append(argoseye)
+cfg['dataset'] = 'ArgoCOCO'
+cfg['dataset_root'] = '/mnt/dataset'
 
 cfg['network'] = dict()
+cfg['network']['classes'] = ["person"]
 cfg['network']['task'] = ['box2d']
 cfg['network']['type'] = 'ssd'
 cfg['network']['input_size'] = [300, 300]
@@ -32,25 +24,26 @@ cfg['network']['init_weight'] = 'torchvision'
 
 
 cfg['anchor'] = dict()
-cfg['anchor']['num_anchor'] = [4, 6, 6, 6, 4, 4]
+cfg['anchor']['num_anchor'] = [6, 6, 6, 6, 6, 6]
 cfg['anchor']['scales'] = [0.1, 0.35, 0.5, 0.65, 0.8, 0.95]
 cfg['anchor']['grid_w'] = [19, 10, 5, 3, 2, 1]
 cfg['anchor']['grid_h'] = [19, 10, 5, 3, 2, 1]
 
 cfg['training'] = dict()
-cfg['training']['batch_size'] = 32
-cfg['training']['end_step'] = 1000000
-cfg['training']['num_workers'] = 2
-cfg['training']['lr0'] = 1e-2
+cfg['training']['batch_size'] = 8
+cfg['training']['end_epoch'] = 300
+cfg['training']['num_workers'] = 4
+cfg['training']['lr0'] = 0.036
 cfg['training']['optimizer'] = dict()
-cfg['training']['optimizer']['type'] = 'sgd'
-cfg['training']['optimizer']['weight_decay'] = 5e-4
-cfg['training']['optimizer']['momentum'] = 0.9
+cfg['training']['optimizer']['sgd'] = dict()
+cfg['training']['optimizer']['sgd']['type'] = 'sgd'
+cfg['training']['optimizer']['sgd']['weight_decay'] = 0.4e-5
+cfg['training']['optimizer']['sgd']['momentum'] = 0.9
 cfg['training']['scheduler'] = dict()
-cfg['training']['scheduler']['type'] = 'steplr'
-cfg['training']['scheduler']['steplr'] = [720000, 860000]
-cfg['training']['scheduler']['gamma'] = 0.1
-
+cfg['training']['scheduler']['cosineannealinglr'] = dict()
+cfg['training']['scheduler']['cosineannealinglr']['T_max'] = 300
+cfg['training']['scheduler']['cosineannealinglr']['eta_min'] = 1e-5
+cfg['training']['scheduler']['cosineannealinglr']['last_epoch'] = -1
 
 cfg['loss'] = dict()
 cfg['loss']['type'] = ['Total', 'Class', 'Location']
@@ -64,12 +57,6 @@ cfg['metric'].append(['mAP', '101point'])
 cfg['nms'] = dict()
 cfg['nms']['topk'] = 200
 cfg['nms']['iou_threshold'] = 0.5
-
-cfg['anchor'] = dict()
-cfg['anchor']['num_anchor'] = [4, 6, 6, 6, 4, 4]
-cfg['anchor']['scales'] = [0.1, 0.35, 0.5, 0.65, 0.8, 0.95]
-cfg['anchor']['grid_w'] = [19, 10, 5, 3, 2, 1]
-cfg['anchor']['grid_h'] = [19, 10, 5, 3, 2, 1]
 
 cfg['augmentation'] = dict()
 cfg['augmentation']['hsv'] = dict()
@@ -90,7 +77,7 @@ cfg['augmentation']['crop']['prob'] = 1.0
 cfg['augmentation']['crop']['min_overlap'] = 0.3
 
 cfg['augmentation']['perspective'] = dict()
-cfg['augmentation']['perspective']['prob'] = 0.0
+cfg['augmentation']['perspective']['prob'] = 0
 cfg['augmentation']['perspective']['scale'] = 0.1
 cfg['augmentation']['perspective']['degree'] = 10.0
 cfg['augmentation']['perspective']['translate'] = 0.1
@@ -103,10 +90,12 @@ cfg['augmentation']['zoomout']['max_ratio'] = 4.0
 
 if __name__ == "__main__":
     import os 
-    if os.path.exists('model/config/ssd/template.json'):
-        os.remove('model/config/ssd/template.json')
+    
+    file_name = __file__.replace('.py', '.json')
+    
+    if os.path.exists(file_name):
+        os.remove(file_name)
     
     #save json
-    with open('model/config/ssd/template.json', 'w', encoding='utf-8') as f:
+    with open(file_name, 'w', encoding='utf-8') as f:
         json.dump(cfg, f, indent=4)
-        

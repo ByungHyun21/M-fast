@@ -6,7 +6,8 @@ def network(cfg):
 
     # SSD 모델 생성
     if cfg['network']['type'] == 'ssd':
-        cfg['network']['num_classes'] += 1 # add background class
+        cfg['network']['classes'].insert(0, 'background') # add background class
+        cfg['network']['num_classes'] = len(cfg['network']['classes'])
         
         from .type.ssd.ssd_full import ssd_full
         from .type.ssd.anchor import anchor_generator

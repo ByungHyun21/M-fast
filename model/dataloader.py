@@ -14,6 +14,8 @@ class dataset(Dataset):
         self.preprocessor = preprocessor
         self.augmentator = augmentator
         self.device = cfg['device']
+        
+        self.valid_classes = cfg['network']['classes']
 
         if purpose == 'Train':
             self.istrain = True
@@ -44,7 +46,7 @@ class dataset(Dataset):
                 valid_labels = copy.deepcopy(json_data)
                 valid_labels['object'] = []
                 for obj in json_data['object']:
-                    if obj['class'] not in cfg['network']['classes']:
+                    if obj['class'] not in self.valid_classes:
                         continue
 
                     must_include = False
@@ -67,7 +69,7 @@ class dataset(Dataset):
                     continue
 
                 image_path = f"{dataset_path}/{purpose}/Image/{sub_dir}/{json_file.replace('.json', '.jpg')}"
-                self.annotations[image_path] = valid_labels
+                self.annotations[image_path] = json_path
             
                 if cfg['test'] and len(self.annotations) > 500:
                     break
@@ -97,6 +99,16 @@ class dataset(Dataset):
         if img.shape[2] == 1:
             img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
         
-        labels = self.annotation_labels[idx]
+        with open(self.annotation_labels[idx], 'r') as f:
+            labels = json.load(f)
+        
+        valid_objects = []
+        for obj in labels['object']:
+            if obj['class'] not in self.valid_classes:
+                continue
+            
+            valid_objects.append(obj)
+        
+        labels['object'] = valid_objects
         
         return img, labels

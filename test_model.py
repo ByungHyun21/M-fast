@@ -1,5 +1,5 @@
 import argparse
-import yaml
+import json
 import time
 import os
 import cv2
@@ -10,7 +10,6 @@ import random
 from tqdm import tqdm
 from model.type.ssd.ssd_full import ssd_full
 from model.type.ssd.anchor import anchor_generator
-from model.utils import *
 from model.network import network
 
 import torch
@@ -65,8 +64,8 @@ def test(config:dict):
     model.model.eval()
     model.eval()
     
-    w_input = config['INPUT_SIZE'][1]
-    h_input = config['INPUT_SIZE'][0]
+    w_input = config['network']['input_size'][1]
+    h_input = config['network']['input_size'][0]
     w_output = 600
     h_output = 600
     
@@ -97,8 +96,8 @@ def test(config:dict):
             img = torch.from_numpy(img).permute([2, 0, 1]).unsqueeze(0).to(config['DEVICE']).float()
             pred = model(img)
             
-            for i in range(len(config['TASK'])):
-                if config['TASK'][i].lower() == 'object detection':
+            for i in range(len(config['network']['task'])):
+                if config['network']['task'][i].lower() == 'box2d':
                     detections = pred[0]
                     # detections = [batch, class, score, x1, y1, x2, y2]
                     
@@ -110,7 +109,7 @@ def test(config:dict):
                             y1 = int(detection[3] * h_output)
                             x2 = int(detection[4] * w_output)
                             y2 = int(detection[5] * h_output)
-                            txt = f"{config['CLASS'][label]} : {score:.2f}"
+                            txt = f"{config['network']['classes'][label]} : {score:.2f}"
                             
                             box_color = colormap[label]
                             cv2.rectangle(img_out, (x1, y1), (x2, y2), box_color, line_thickness)
@@ -146,8 +145,8 @@ def test(config:dict):
             
             pred = model(img)
             
-            for i in range(len(config['TASK'])):
-                if config['TASK'][i].lower() == 'object detection':
+            for i in range(len(config['network']['task'])):
+                if config['network']['task'][i].lower() == 'box2d':
                     detections = pred[0]
                     # detections = [batch, class, score, x1, y1, x2, y2]
                     
@@ -159,7 +158,7 @@ def test(config:dict):
                             y1 = int(detection[3] * h_output)
                             x2 = int(detection[4] * w_output)
                             y2 = int(detection[5] * h_output)
-                            txt = f"{config['CLASS'][label]} : {score:.2f}"
+                            txt = f"{config['network']['classes'][label]} : {score:.2f}"
                             
                             box_color = colormap[label]
                             cv2.rectangle(img_out, (x1, y1), (x2, y2), box_color, line_thickness)
@@ -194,8 +193,8 @@ def test(config:dict):
             img = torch.from_numpy(img).permute([2, 0, 1]).unsqueeze(0).to(config['DEVICE']).float()
             pred = model(img)
             
-            for i in range(len(config['TASK'])):
-                if config['TASK'][i].lower() == 'object detection':
+            for i in range(len(config['network']['task'])):
+                if config['network']['task'][i].lower() == 'box2d':
                     detections = pred[0]
                     # detections = [batch, class, score, x1, y1, x2, y2]
                     
@@ -207,7 +206,7 @@ def test(config:dict):
                             y1 = int(detection[3] * h_output)
                             x2 = int(detection[4] * w_output)
                             y2 = int(detection[5] * h_output)
-                            txt = f"{config['CLASS'][label]} : {score:.2f}"
+                            txt = f"{config['network']['classes'][label]} : {score:.2f}"
                             
                             box_color = colormap[label]
                             cv2.rectangle(img_out, (x1, y1), (x2, y2), box_color, line_thickness)
@@ -258,12 +257,14 @@ if __name__ == '__main__':
     opt = parser.parse_args()
     
     # Test
-    opt.model_dir = 'runs/ssd_mobilenet_v2_argoseye_3'
+    # opt.model_dir = 'runs/mobilenetv2_ssd_argoseye'
+    # opt.model_dir = 'runs/mobilenetv2_ssd_coco2017_woper_1'
+    opt.model_dir = 'runs/mobilenetv2_ssd_argococo_crop05_1'
     opt.best = True
     
     opt.cam = True
-    # opt.video = 'D:\\market\\C032300_002.mp4'
-    # opt.img_dir = 'C:\\Users\\dqg06\\OneDrive\\Desktop\\argoseye\\test_video\\CH4'
+    # opt.video = 'D:\\dance_02.mp4'
+    # opt.img_dir = 'C:\\Users\\dqg06\\OneDrive\\Desktop\\TS1'
     
     opt.show_result = True
     # opt.save_video = 'test_ceil.mp4'
@@ -272,9 +273,15 @@ if __name__ == '__main__':
     
 
     # read txt to dict
-    with open(f"{opt.model_dir}/configuration.txt", 'r') as f:
-        config = yaml.load(f, Loader=yaml.FullLoader)
+    with open(f"{opt.model_dir}/config.json", 'r') as f:
+        config = json.load(f)
 
     config.update(vars(opt))
+    
+    # if 'background' in config['network']['classes']:
+    #     config['network']['classes'].remove('background')
+    #     config['network']['num_classes'] -= 1
+
+    # config['network']['num_classes'] += 1 # background class 추가
 
     test(config)

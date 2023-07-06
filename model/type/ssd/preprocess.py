@@ -3,8 +3,9 @@ import numpy as np
 class preprocessor(object):
     def __init__(self, cfg, anchor):
         self.anchor = anchor
-        self.nc = cfg['network']['num_classes']
         self.classes = cfg['network']['classes']
+        self.classes.remove('background')
+        self.nc = len(self.classes)
     
     def __call__(self, label):
         gt = self.get_delta(label)

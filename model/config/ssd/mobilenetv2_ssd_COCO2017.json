@@ -147,8 +147,8 @@
     },
     "training": {
         "batch_size": 192,
-        "end_epoch": 700,
-        "num_workers": 2,
+        "end_epoch": 600,
+        "num_workers": 8,
         "lr0": 0.015,
         "optimizer": {
             "sgd": {
@@ -159,7 +159,7 @@
         },
         "scheduler": {
             "cosineannealinglr": {
-                "T_max": 700,
+                "T_max": 600,
                 "eta_min": 1e-05,
                 "last_epoch": -1
             }
@@ -205,7 +205,7 @@
             "min_overlap": 0.3
         },
         "perspective": {
-            "prob": 1.0,
+            "prob": 0,
             "scale": 0.1,
             "degree": 10.0,
             "translate": 0.1,

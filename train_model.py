@@ -231,7 +231,7 @@ def train(rank:int, cfg:dict):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', type=str, default='model/config/ssd/mobilenetv2_ssd_COCO2017.json')
+    parser.add_argument('--config', type=str, default='model/config/ssd/vgg16_ssd_VOC0712.json')
     parser.add_argument('--wandb', default=None, type=str)
     opt = parser.parse_args()
     
@@ -246,7 +246,7 @@ if __name__ == '__main__':
     print('config : ', opt.config)
 
     #TODO: 테스트용
-    # cfg['wandb'] = 'byunghyun'
+    cfg['wandb'] = 'byunghyun'
     # cfg['test'] = True
     
     # DDP 에 사용할 포트를 사용하지 않는 포트중 임의로 선택

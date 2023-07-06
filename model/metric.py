@@ -46,11 +46,6 @@ class mAP(object):
                 if self.test and len(self.data) > 100:
                     break
 
-        # background class 고려
-        if self.model_type in ['ssd']: 
-            #'background' 삽입
-            self.model_classes.insert(0, 'background')
-                
         self.model2mAPClass = []
         for model_class in self.model_classes:
             if model_class in self.common_classes:

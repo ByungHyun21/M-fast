@@ -24,11 +24,12 @@ class augmentator(object):
                         p=hsv_cfg['prob']),
             
             # geometric
+            RandomCrop(min_overlap=random_crop_cfg['min_overlap'], 
+                    p=random_crop_cfg['prob']),
             RandomZoomOut(max_scale=random_zoomout_cfg['max_ratio'],
                         mean=mean,
                         p=random_zoomout_cfg['prob']),
-            RandomCrop(min_overlap=random_crop_cfg['min_overlap'], 
-                    p=random_crop_cfg['prob']),
+            
             # mosaic(canvas_range=mosaic_cfg['canvas_range'], 
             #     p=mosaic_cfg['prob']),
             random_perspective(degree=perspective_cfg['degree'], 

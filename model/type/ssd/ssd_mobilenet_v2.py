@@ -14,7 +14,7 @@ class ssd_mobilenet_v2(nn.Module):
     def __init__(self, cfg):
         super().__init__()
         self.model_name = cfg['exp_name']
-        self.nc = cfg['network']['num_classes'] + 1 # number of class, 1 is for background(1)
+        self.nc = cfg['network']['num_classes']
         self.device = cfg['device']
         self.model_class = cfg['network']['classes']
         

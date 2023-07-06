@@ -10,19 +10,18 @@ import torchvision
 from model.layers import *
 
 class ssd_vgg16_bn(nn.Module):
-    def __init__(self, config):
+    def __init__(self, cfg):
         super().__init__()
-        # self.ddp_rank = ddp_rank
-        self.model_name = config['METHOD'] + '_' + config['TYPE']
-        self.nc = len(config['CLASS']) + 1 # number of class, 1 is for background(1)
-        self.device = config['DEVICE']
-        self.model_class = config['CLASS']
+        self.model_name = cfg['exp_name']
+        self.nc = cfg['network']['num_classes']
+        self.device = cfg['device']
+        self.model_class = cfg['network']['classes']
         
-        anchor_n = config['ANCHOR_N']
+        anchor_n = cfg['anchor']['num_anchor']
         
-        self.mean = torch.tensor(config['MEAN']).view(1, 3, 1, 1).to(self.device)
-        self.std = torch.tensor(config['STD']).view(1, 3, 1, 1).to(self.device)
-        
+        self.mean = torch.tensor(cfg['network']['mean']).view(1, 3, 1, 1).to(self.device)
+        self.std = torch.tensor(cfg['network']['std']).view(1, 3, 1, 1).to(self.device)
+  
         self.backbone = nn.Sequential(
             # Conv 1
             Conv2d(3, 64, act='relu'),           # 300x300x3 -> 300x300x64
@@ -98,11 +97,10 @@ class ssd_vgg16_bn(nn.Module):
         self.rescale_factor = nn.Parameter(torch.FloatTensor(1, 512, 1, 1), requires_grad=True)
         nn.init.constant_(self.rescale_factor, 20)
 
-        self.backbone_weight = config['BACKBONE_WEIGHT']
-        self.pretrained_weight = config['PRETRAINED_WEIGHT']
-
-        self.load_torchvision_weights()
-        self.load_pretrained_weights()
+        if cfg['network']['init_weight'] == 'torchvision':
+            self.load_torchvision_weights()
+        elif cfg['network']['init_weight'] is not None:
+            self.load_pretrained_weights()
 
     def forward(self, x):
         # x = (x / 128.0) - 1.0
@@ -123,22 +121,6 @@ class ssd_vgg16_bn(nn.Module):
         x1 = x1 / norm
         x1 = x1 * self.rescale_factor
 
-        # x1 = self.head_1(x1)
-        # x2 = self.head_2(x2)
-        # x3 = self.head_3(x3)
-        # x4 = self.head_4(x4)
-        # x5 = self.head_5(x5)
-        # x6 = self.head_6(x6)
-        
-        # x1 = self.review(x1)
-        # x2 = self.review(x2)
-        # x3 = self.review(x3)
-        # x4 = self.review(x4)
-        # x5 = self.review(x5)
-        # x6 = self.review(x6)
-        
-        # x = torch.cat([x1, x2, x3, x4, x5, x6], dim=1)
-        
         cls_x1 = self.head_cls1(x1)
         cls_x2 = self.head_cls2(x2)
         cls_x3 = self.head_cls3(x3)
@@ -181,25 +163,24 @@ class ssd_vgg16_bn(nn.Module):
         return x
     
     def load_torchvision_weights(self):
-        if self.backbone_weight == 'torchvision':
-            state_dict = self.state_dict()
-            param_names = list(state_dict.keys())
+        state_dict = self.state_dict()
+        param_names = list(state_dict.keys())
 
-            pretrained_dict = torchvision.models.vgg16_bn(weights=torchvision.models.VGG16_BN_Weights.DEFAULT).state_dict()
-            pretrained_names = list(pretrained_dict.keys())
+        pretrained_dict = torchvision.models.vgg16_bn(weights=torchvision.models.VGG16_BN_Weights.DEFAULT).state_dict()
+        pretrained_names = list(pretrained_dict.keys())
 
-            for i, name in enumerate(param_names[1:]): # exclude [0]는 rescale_factor임. weight loading에서 제외
-                if 'backbone' in name or 'extra_1' in name:
-                    # print(name, '<', pretrained_names[i])
-                    state_dict[name] = pretrained_dict[pretrained_names[i]]
+        for i, name in enumerate(param_names[1:]): # exclude [0]는 rescale_factor임. weight loading에서 제외
+            if 'backbone' in name or 'extra_1' in name:
+                # print(name, '<', pretrained_names[i])
+                state_dict[name] = pretrained_dict[pretrained_names[i]]
 
-                    if pretrained_names[i][-5:] != name[-5:] or \
-                        pretrained_dict[pretrained_names[i]].shape != state_dict[name].shape:
-                        # print(state_dict[name].shape)
-                        # print(pretrained_dict[pretrained_names[i]].shape)
-                        assert False, 'Pretrained model과 our model의 shape이 일치하지 않음'
-    
-            self.load_state_dict(state_dict)
+                if pretrained_names[i][-5:] != name[-5:] or \
+                    pretrained_dict[pretrained_names[i]].shape != state_dict[name].shape:
+                    # print(state_dict[name].shape)
+                    # print(pretrained_dict[pretrained_names[i]].shape)
+                    assert False, 'Pretrained model과 our model의 shape이 일치하지 않음'
+
+        self.load_state_dict(state_dict)
     
     def load_pretrained_weights(self):
         

@@ -1,5 +1,5 @@
 import argparse
-import yaml
+import json
 import time
 import os
 import cv2
@@ -9,7 +9,6 @@ import numpy as np
 from tqdm import tqdm
 from model.type.ssd.ssd_full import ssd_full_argoseye
 from model.type.ssd.anchor import anchor_generator
-from model.utils import *
 from model.network import network
 
 import torch
@@ -33,21 +32,21 @@ def convert_onnx(config:dict):
     
     assert save_file is not None, 'best나 last를 선택해야 합니다.'
     
-    config['DEVICE'] = 'cuda:0'
+    config['device'] = 'cuda:0'
     model, _, _, _, _, _ = network(config)
-    model.model.load_state_dict(torch.load(f"{config['model_dir']}/{save_file}", map_location=config['DEVICE']))
+    model.model.load_state_dict(torch.load(f"{config['model_dir']}/{save_file}", map_location=config['device']))
     
-    if config['METHOD'] == 'ssd':
+    if config['network']['type'] == 'ssd':
         anchor = anchor_generator(config)
         model = ssd_full_argoseye(config, model.model, anchor)
     
-    model.model = model.model.to(config['DEVICE'])
-    model.to(config['DEVICE'])
+    model.model = model.model.to(config['device'])
+    model.to(config['device'])
     
     model.model.eval()
     model.eval()
     
-    model(torch.rand(1, 3, 300, 300).to(config['DEVICE']))
+    model(torch.rand(1, 3, 300, 300).to(config['device']))
     
     onnx_file = f"{config['model_dir']}/model.onnx"
     torch.onnx.export(model, torch.rand(1, 3, 300, 300), onnx_file, opset_version=10, export_params=True, verbose=False, do_constant_folding=True)
@@ -65,14 +64,14 @@ if __name__ == '__main__':
     opt = parser.parse_args()
     
     # Test
-    opt.model_dir = 'runs/ssd_mobilenet_v2_argoseye_3'
+    opt.model_dir = 'runs/mobilenetv2_ssd_argococo_crop05_1'
     opt.best = True    
     
     assert opt.model_dir is not None, 'model_dir을 입력해주세요.'
 
     # read txt to dict
-    with open(f"{opt.model_dir}/configuration.txt", 'r') as f:
-        config = yaml.load(f, Loader=yaml.FullLoader)
+    with open(f'{opt.model_dir}/config.json', 'r') as f:
+        config = json.load(f)
 
     config.update(vars(opt))
 
