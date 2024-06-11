@@ -174,10 +174,7 @@ class ssd_full_onnx(nn.Module):
         
         self.model = model
         self.anchor = torch.from_numpy(anchor).float().to(self.device)
-        
-        
-        # self.activation = nn.Softmax(dim=-1)
-        
+
         self.topk = cfg['nms']['topk']
         self.nms_iou_threshold = cfg['nms']['iou_threshold']
 
@@ -228,10 +225,7 @@ class ssd_full_argoseye(nn.Module):
         
         self.model = model
         self.anchor = anchor
-        
-        
-        # self.activation = nn.Softmax(dim=-1)
-        
+
         self.topk = cfg['nms']['topk']
         self.nms_iou_threshold = cfg['nms']['iou_threshold']
 
@@ -239,10 +233,10 @@ class ssd_full_argoseye(nn.Module):
     def forward(self, x):
         x = self.model(x)
         
-        anchor = self.anchor_generator(self.scale, self.grid_w, self.grid_h, self.anchor_n)
+        # anchor = self.anchor_generator(self.scale, self.grid_w, self.grid_h, self.anchor_n)
         # anchor = torch.from_numpy(self.anchor).float().to(self.device)
         
-        x = torch.concat([x, anchor.unsqueeze(0)], dim=2).contiguous()
+        # x = torch.concat([x, anchor.unsqueeze(0)], dim=2).contiguous()
         # x = self.postprocess(x, anchor)
         return x
     

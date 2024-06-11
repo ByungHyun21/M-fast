@@ -207,12 +207,3 @@ python train_model.py --config {config_path} --wandb {wandb_name}
 |SSD|Mobilenet-V1|-|-|Imagenet|-|-|-|-|-|-|
 |SSD|Mobilenet-V2|16.69M|2.25G|Imagenet|-|-|-|-|-|-|
 |SSD|Mobilenet-V3|-|-|Imagenet|-|-|-|-|-|-|
-
-#### :radio_button: Argoseye Dataset
-|Model|Backbone|Params|Flops|pretrained|AP<sup>0.5:0.95</sup>|AP<sup>50</sup>|AP<sup>75</sup>|AP<sup>small</sup>|AP<sup>midium</sup>|AP<sup>large</sup>|
-|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-|YoloV1|-|-|-|-|-|-|-|-|-|-|
-|SSD|VGG16|42.7M|37.5G|Imagenet|-|-|-|-|-|-|
-|SSD|Mobilenet-V1|-|-|Imagenet|-|-|-|-|-|-|
-|SSD|Mobilenet-V2|16.69M|2.25G|Imagenet|-|-|-|-|-|-|
-|SSD|Mobilenet-V3|-|-|Imagenet|-|-|-|-|-|-|

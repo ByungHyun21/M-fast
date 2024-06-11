@@ -73,14 +73,7 @@ class ssd_mobilenet_v2(nn.Module):
             GroupConv2d(64, 64, s=2, act='relu6'),  # 2x2x64 -> 1x1x64
             Conv2d(64, 128, k=1, act='relu6'),   # 1x1x64 -> 1x1x128
         )
-        
-        # self.head_1 = Conv2d(576, anchor_n[0]*self.nc, bn=False, act=None)   # 19x19x576 -> 19x19x(anchors*nc)
-        # self.head_2 = Conv2d(1280, anchor_n[1]*self.nc, bn=False, act=None)   # 10x10x160 -> 10x10x(anchors*nc)
-        # self.head_3 = Conv2d(512, anchor_n[2]*self.nc, bn=False, act=None)   # 5x5x256 -> 5x5x(anchors*nc)
-        # self.head_4 = Conv2d(256, anchor_n[3]*self.nc, bn=False, act=None)   # 3x3x256 -> 3x3x(anchors*nc)
-        # self.head_5 = Conv2d(256, anchor_n[4]*self.nc, bn=False, act=None)   # 2x2x256 -> 2x2x(anchors*nc)
-        # self.head_6 = Conv2d(128, anchor_n[5]*self.nc, bn=False, act=None)   # 1x1x128 -> 1x1x(anchors*nc)
-        
+
         self.head_cls1 = Conv2d(576, anchor_n[0]*self.nc, bn=False, act=None)   # 19x19x576 -> 19x19x(anchors*nc)
         self.head_cls2 = Conv2d(1280, anchor_n[1]*self.nc, bn=False, act=None)   # 10x10x160 -> 10x10x(anchors*nc)
         self.head_cls3 = Conv2d(512, anchor_n[2]*self.nc, bn=False, act=None)   # 5x5x256 -> 5x5x(anchors*nc)
@@ -114,22 +107,6 @@ class ssd_mobilenet_v2(nn.Module):
         x4 = self.extra_4(x3)
         x5 = self.extra_5(x4)
         x6 = self.extra_6(x5)
-        
-        # x1 = self.head_1(x1)
-        # x2 = self.head_2(x2)
-        # x3 = self.head_3(x3)
-        # x4 = self.head_4(x4)
-        # x5 = self.head_5(x5)
-        # x6 = self.head_6(x6)
-        
-        # x1 = self.review(x1)
-        # x2 = self.review(x2)
-        # x3 = self.review(x3)
-        # x4 = self.review(x4)
-        # x5 = self.review(x5)
-        # x6 = self.review(x6)
-        
-        # x = torch.cat([x1, x2, x3, x4, x5, x6], dim=1).contiguous()
         
         cls_x1 = self.head_cls1(x1)
         cls_x2 = self.head_cls2(x2)

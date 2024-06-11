@@ -73,6 +73,15 @@ def test(config:dict):
     text_thickness = 1
     text_scale = 0.5
     
+    with np.load('EUA1200.npz') as X:
+        K1, d1 = [X[i] for i in ('K', 'd')]
+
+    newcamera1, roi1 = cv2.getOptimalNewCameraMatrix(K1, d1, (640,480), 0)
+    
+    vfov = 2 * np.arctan(0.5 * 480 / newcamera1[1, 1]) * 180 / np.pi
+    camera_height = 2.5
+    camera_tilt = 90 - 42.38665372469076
+    
     # output
     vc_out = None
     if config['save_video'] is not None:
@@ -88,6 +97,8 @@ def test(config:dict):
             ret, img = vc.read()
             if not ret:
                 continue
+            
+            img = cv2.undistort(img, K1, d1, None, newcamera1)
             
             start = time.time()
             
@@ -109,11 +120,18 @@ def test(config:dict):
                             y1 = int(detection[3] * h_output)
                             x2 = int(detection[4] * w_output)
                             y2 = int(detection[5] * h_output)
-                            txt = f"{config['network']['classes'][label]} : {score:.2f}"
                             
-                            box_color = colormap[label]
-                            cv2.rectangle(img_out, (x1, y1), (x2, y2), box_color, line_thickness)
-                            cv2.putText(img_out, txt, (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, text_scale, box_color, text_thickness)
+                            theta = camera_tilt
+                            # object_degree = theta - (y2/h_output) * vfov + vfov / 2
+                            object_degree = theta + (1 - y2/h_output) * vfov
+                            distance = camera_height * np.tan(object_degree * np.pi / 180)
+                            
+                            # txt = f"{config['network']['classes'][label]} : {score:.2f}"
+                            txt = f"{distance:.2f}m"
+                            
+                            box_color = (0, 255, 0)
+                            cv2.rectangle(img_out, (x1, y1), (x2, y2), box_color, 2)
+                            cv2.putText(img_out, txt, (int((x1+x2)/2), int((y1+y2)/2)), cv2.FONT_HERSHEY_SIMPLEX, 2, box_color, 2)
                             
             end = time.time()
             cv2.putText(img_out, f"FPS : {1/(end-start):.2f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
@@ -262,12 +280,15 @@ if __name__ == '__main__':
     opt.model_dir = 'runs/mobilenetv2_ssd_argococo_crop05_1'
     opt.best = True
     
-    # opt.cam = True
-    opt.video = 'E:/argos-eye_4ch_20231018/argos-eye_ch1_20231018-175514.mp4'
+    opt.cam = True
+    # opt.video = 'D:/virtual2.mp4'
     # opt.img_dir = 'C:\\Users\\dqg06\\OneDrive\\Desktop\\TS1'
     
     opt.show_result = True
-    opt.save_video = 'argos-eye_ch1_20231018-175514.mp4'
+    # opt.save_video = 'TS1.mp4'
+    
+    
+    
 
     # read txt to dict
     with open(f"{opt.model_dir}/config.json", 'r') as f:

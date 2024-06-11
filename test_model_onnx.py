@@ -229,11 +229,11 @@ if __name__ == '__main__':
     
     opt.cam = True
     # opt.video = 'D:/construct_02.mp4'
-    # opt.img_dir = 'C:\\Users\\dqg06\\OneDrive\\Desktop\\argoseye\\test_video\\CH4'
+    # opt.img_dir = 'D:/Argoseye/Test/CH2'
     # opt.img_dir = 'sample'
     
     opt.show_result = True
-    # opt.save_video = 'test_ceil.mp4'
+    # opt.save_video = 'test_CH2.mp4'
     
     opt.device = 'gpu'
     

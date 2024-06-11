@@ -49,7 +49,7 @@ def convert_onnx(config:dict):
     model(torch.rand(1, 3, 300, 300).to(config['device']))
     
     onnx_file = f"{config['model_dir']}/model.onnx"
-    torch.onnx.export(model, torch.rand(1, 3, 300, 300), onnx_file, opset_version=10, export_params=True, verbose=False, do_constant_folding=True)
+    torch.onnx.export(model, torch.rand(1, 3, 300, 300), onnx_file, opset_version=9, export_params=True, verbose=False, do_constant_folding=True)
     print('done')
 
 
