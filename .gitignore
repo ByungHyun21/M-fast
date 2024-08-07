@@ -4,3 +4,5 @@
 
 model/__pycache__
 runs/*
+model_trained/*
+backbone_trained/*

@@ -13,10 +13,10 @@ from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data import DataLoader
 
 from tqdm import tqdm
-from model.network import network
-from model.dataloader import dataset
-from model.metric import mAP
-from model.report_manager import report_manager
+from src.network import network
+from src.dataloader import dataset
+from src.metric import mAP
+from src.report_manager import report_manager
 
 def train(rank:int, cfg:dict):
     cfg['device'] = 'cuda' + ':' + str(rank)    
@@ -57,7 +57,6 @@ def train(rank:int, cfg:dict):
                       pin_memory=True, 
                       drop_last=True, 
                       sampler=None)
-
 
     mAP_use = False
     for idx in range(len(cfg['metric'])):

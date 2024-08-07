@@ -8,7 +8,7 @@ import torch.nn.functional as f
 import torch.optim as optim
 import torchvision
 
-from model.layers import *
+from code.layers import *
 
 class ssd_mobilenet_v2(nn.Module):
     def __init__(self, cfg):
