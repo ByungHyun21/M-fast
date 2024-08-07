@@ -3,37 +3,28 @@
 # M-fast 🏃‍♂️🏃🏃‍♀️
 Mono AI 
 
-## :small_blue_diamond: TODO 
-- Multi-node, Multi-GPU 지원
-- Target에 따른 학습 파이프라인 지원(acacia, belladonna, etc.)
-- Pretrained 여부에 따른 학습 파이프라인 지원(Pretrained, Not Pretrained, MOCO)
-- Dataset Merge에 따른 학습 파이프라인 지원(COCO+VOC)
-    * utils/load_config에서 현재 단일 데이터셋만 지원
-- 효율적인 mAP 계산 지원
-
 ## :one: 사용법
 
 ### :small_blue_diamond: Anaconda를 이용한 실행
 #### :radio_button: 환경 설치
 ```bash
-conda create -n {env_name} python=3.9
+conda create -n {env_name} python=3.10.12
 conda activate {env_name}
 ```
 
 #### :radio_button: 필요 패키지 설치
 ```bash
-(env_name) conda install -c conda-forge wandb tqdm opencv -y
+(env_name) conda install -c conda-forge tqdm opencv -y
 (env_name) conda install pyyaml
 ```
 
 #### :radio_button: 학습
 ```bash
 CUDA_VISIBLE_DEVICES={gpu} python train_backbone.py # 현재 미지원
-CUDA_VISIBLE_DEVICES={gpu} python train_model.py --config {config_path}  --wandb {wandb_name}
+CUDA_VISIBLE_DEVICES={gpu} python train_model.py --config {config_path}
 ```
 
 * --config {config_path}: 학습할 네트워크 관련 설정파일(.yaml) 경로
-* --wandb {wandb_name}: Wandb 시각화에 사용할 계정명
 
 예시
 ```bash
@@ -44,69 +35,21 @@ CUDA_VISIBLE_DEVICES='0,1' python train_model.py # 2 GPU Training
 
 ### :small_blue_diamond: Docker를를 이용한 실행
 
-#### :radio_button: Nvidia-docker 설치
-```bash
-TODO
-```
 
-#### :radio_button: Dockerfile을 이용한 실행
+#### :radio_button: 빌드 및 실행
 ```bash
 docker build --tag mfast .
 
-docker run -it --rm \
---runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=0 \
--v {M-fast 경로}:/M-fast \
--v {데이터셋 경로}:/dataset \ 
---shm-size=8G \ 
---network host \
-mfast 
-
-혹은
-
-docker run -it --rm \
---gpus=all \
--v {M-fast 경로}:/M-fast \
--v {데이터셋 경로}:/dataset \ 
---shm-size=8g \
---network host \
-mfast
-
-wandb login {API_KEY}
-```
-
-예시
-```
-docker run -it --rm \
---runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=0 \
--v {M-fast 경로}:/M-fast \
--v {데이터셋 경로}:/dataset \ 
---shm-size=8G \ 
---network host \
-mfast 
-
-wandb login xxxxxxxxxxxxxxx
-```
-
-```
-docker run -it --rm \
---gpus=all \
--v C:\M-fast:/M-fast \
--v C:\dataset:/dataset \
---shm-size=8g \
---network host \
-mfast
-
-wandb login xxxxxxxxxxxxxxx
+docker run -it --rm --gpus='"device=0,1,2"' -v {M-fast 경로}:/M-fast -v {데이터셋 경로}:/dataset --shm-size=8g --network host mfast
 ```
 
 #### :radio_button: 학습
 ```bash
 python train_backbone.py # 현재 미지원
-python train_model.py --config {config_path} --wandb {wandb_name}
+python train_model.py --config {config_path}
 ```
 
-* --config {config_path}: 학습할 네트워크 관련 설정파일(.yaml) 경로
-* --wandb {wandb_name}: Wandb 시각화에 사용할 계정명
+* --config {config_path}: 학습할 네트워크 관련 설정파일(.json) 경로
 
 사용하는 GPU: 환경 실행시 설정한 GPU
 

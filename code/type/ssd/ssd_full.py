@@ -123,7 +123,6 @@ class ssd_full(nn.Module):
         return ious 
 
     def convert_gt(self, gt): 
-        # wandb log 같은 곳에서 사용되는 함수
         # Input: preprocessing 된 데이터
         # Output: GT 데이터
         # gt: preprocess 이후의 데이터

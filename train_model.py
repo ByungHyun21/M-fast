@@ -134,7 +134,6 @@ def train(rank:int, cfg:dict):
         scheduler.step()
             
         dict_train = manager.get_loss_dict()
-        manager.wandb_report(step, 'train/', dict_train)
 
         # # # # #
         # Validation
@@ -153,20 +152,12 @@ def train(rank:int, cfg:dict):
             dist.barrier()
 
         dict_valid = manager.get_loss_dict()
-        manager.wandb_report(step, 'valid/', dict_valid)
-
-        # report inference result to wandb
-        manager.wandb_report(step, '', {'lr': scheduler.get_last_lr()[0]})
-        if ('box2d' in cfg['network']['task']) and (epoch % 10 == 0):
-            manager.wandb_report_object_detection(step, model)
-            manager.wandb_report_object_detection_training(step, model, img_train, gt_train)
-            
+    
         if epoch % 5 == 0:
             if mAP_use:
                 mAP_metric.reset()
                 mAPs = mAP_metric(rank, model)
                 if rank == 0:
-                    manager.wandb_report(step, mAP_metric.dataset_name, mAPs)
                     mAP_metric.print()
             
                 # Save Best Model
@@ -187,7 +178,6 @@ def train(rank:int, cfg:dict):
         mAP_metric.reset()
         mAPs = mAP_metric(rank, model)
         if rank == 0:
-            manager.wandb_report(step, mAP_metric.dataset_name, mAPs)
             mAP_metric.print() 
 
     # Save Last Model
@@ -232,7 +222,6 @@ def train(rank:int, cfg:dict):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', type=str, default='model/config/ssd/vgg16_ssd_VOC0712.json')
-    parser.add_argument('--wandb', default=None, type=str)
     opt = parser.parse_args()
     
     assert opt.config is not None, 'config is not defined'
@@ -241,12 +230,9 @@ if __name__ == '__main__':
     with open(opt.config) as f:
         cfg = json.load(f)
         
-    cfg['wandb'] = opt.wandb
-        
     print('config : ', opt.config)
 
     #TODO: 테스트용
-    cfg['wandb'] = 'byunghyun'
     # cfg['test'] = True
     
     # DDP 에 사용할 포트를 사용하지 않는 포트중 임의로 선택

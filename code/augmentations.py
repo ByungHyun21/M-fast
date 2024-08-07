@@ -4,9 +4,6 @@ import numpy as np
 import math
 import copy
 
-
-Background_color = 0
-
 """
 img : 0~255 RGB Uint8, numpy.array
 """

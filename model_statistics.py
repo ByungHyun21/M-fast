@@ -33,7 +33,6 @@ if __name__ == '__main__':
     parser.add_argument('--voc', action='store_true')
     parser.add_argument('--crowdhuman', action='store_true')
     parser.add_argument('--argoseye', action='store_true')
-    parser.add_argument('--wandb', default=None, type=str)
     parser.add_argument('--dataset_path', default=None, type=str)
     opt = parser.parse_args()
 
