@@ -1,4 +1,4 @@
-from model.augmentations import *
+from src.augmentation import *
 
 class augmentator(object):
     def __init__(self, cfg):

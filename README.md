@@ -35,6 +35,31 @@ CUDA_VISIBLE_DEVICES='0,1' python train_model.py # 2 GPU Training
 
 ### :small_blue_diamond: Docker를를 이용한 실행
 
+### :radio_button: Window Docker 설치 (Ubuntu에서 설치도 동일)
+```bash
+powershell 관리자 권한 실행
+wsl --install # 가상머신 플랫폼 설치
+설치 후 리부트
+microsoft store에서 원하는 ubuntu 설치 (현재 기본 22.04)
+wsl 로 ubuntu 실행
+
+# Ubuntu 설치는 여기서부터 해도 무방
+sudo apt update && sudo apt upgrade -y
+sudo apt-get install ca-certificates curl gnupg lsb-release -y
+
+# docker 저장소 추가
+sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# docker 설치
+sudo apt-get update -y
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
+
+sudo service docker start
+```
+
 
 #### :radio_button: 빌드 및 실행
 ```bash

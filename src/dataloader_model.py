@@ -9,9 +9,8 @@ import torch
 from torch.utils.data import Dataset
 import copy
 
-class dataset(Dataset):
-    def __init__(self, rank, cfg, purpose, preprocessor=None, augmentator=None):
-        self.preprocessor = preprocessor
+class dataloader_model(Dataset):
+    def __init__(self, rank, cfg, purpose, augmentator=None):
         self.augmentator = augmentator
         self.device = cfg['device']
         

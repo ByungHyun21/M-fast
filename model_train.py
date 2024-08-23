@@ -13,8 +13,8 @@ from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data import DataLoader
 
 from tqdm import tqdm
-from src.network import network
-from src.dataloader import dataset
+from build_pipeline import build_pipeline
+from src.dataloader_model import dataloader_model
 from src.metric import mAP
 from src.report_manager import report_manager
 
@@ -28,7 +28,7 @@ def train(rank:int, cfg:dict):
                             world_size=cfg['DDP']['world_size'], 
                             init_method=cfg['DDP']['init_method'])
     
-    model, preprocessor, augmentator, loss_func, optimizer, scheduler = network(cfg)
+    model, augmentator, loss_func, optimizer, scheduler = build_pipeline(cfg)
     model.model = DDP(model.model.to(cfg['device']), device_ids=[rank], output_device=rank)
     model.to(cfg['device'])
     
@@ -36,8 +36,8 @@ def train(rank:int, cfg:dict):
     batch_size = cfg['training']['batch_size'] // cfg['DDP']['world_size']
     cfg.update({'batch_size_one_gpu':batch_size})
     
-    dataset_train = dataset(rank, cfg, 'Train', preprocessor=preprocessor, augmentator=augmentator)
-    dataset_valid = dataset(rank, cfg, 'Valid', preprocessor=preprocessor, augmentator=augmentator)
+    dataset_train = dataloader_model(rank, cfg, 'Train', augmentator=augmentator)
+    dataset_valid = dataloader_model(rank, cfg, 'Valid', augmentator=augmentator)
     print(f"dataset_train: {len(dataset_train)}")
     print(f"dataset_valid: {len(dataset_valid)}")
     
@@ -220,7 +220,7 @@ def train(rank:int, cfg:dict):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', type=str, default='model/config/ssd/vgg16_ssd_VOC0712.json')
+    parser.add_argument('--config', type=str, default='config_model/monouni/dla34_monouni_rope3d.json')
     opt = parser.parse_args()
     
     assert opt.config is not None, 'config is not defined'
@@ -251,8 +251,4 @@ if __name__ == '__main__':
     
     cfg['exp_name'] = opt.config.split('/')[-1].split('.')[0]
     
-    cfg['network']['num_classes'] = len(cfg['network']['classes'])
-    
-    cfg['training']['num_gpus'] = torch.cuda.device_count()
-    
-    mp.spawn(train, args=([cfg]), nprocs=cfg['training']['num_gpus'], join=True)
+    mp.spawn(train, args=([cfg]), nprocs=cfg['DDP']['world_size'], join=True)

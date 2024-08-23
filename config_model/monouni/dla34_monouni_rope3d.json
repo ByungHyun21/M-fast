@@ -1,0 +1,48 @@
+{
+    "model": "monouni",
+    "backbone": "dla34",
+    "dataset": "Rope3D_cits",
+    "classes": [
+        "person"
+    ],
+    "task": [
+        "box2d",
+        "box3d"
+    ],
+    "input_shape": [
+        960,
+        512
+    ],
+    "batch_size": 8,
+    "end_epoch": 300,
+    "num_workers": 4,
+    "lr0": 0.036,
+    "backbone_freeze": false,
+    "neck_freeze": false,
+    "head_freeze": false,
+    "backbone_init_weight": "torchvision",
+    "model_init_weight": null,
+    "optimizer": {
+        "sgd": {
+            "weight_decay": 4e-06,
+            "momentum": 0.9
+        }
+    },
+    "scheduler": {
+        "cosineannealinglr": {
+            "T_max": 300,
+            "eta_min": 1e-05,
+            "last_epoch": -1
+        }
+    },
+    "loss": {
+        "alpha": {
+            "class": 1.0,
+            "location": 1.0
+        }
+    },
+    "nms": {
+        "topk": 200,
+        "iou_threshold": 0.5
+    }
+}
