@@ -19,7 +19,7 @@ class MobileNet_V2_Conv2D(nn.Module):
                  cin:int, 
                  cout:int, 
                  s:int=1, 
-                 bn:Union[str, None]='bn', 
+                 bn:Union[list, None]=['bn'],
                  bias:bool=True):
         super().__init__()
         self.residual = False

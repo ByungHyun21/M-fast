@@ -3,9 +3,9 @@ from .utils import *
 
 import torch.nn as nn
 
-class DeConv2d(nn.Module):
+class DeConv2D(nn.Module):
     """
-    Deconvolution Layer
+    Deconvolution Layer (Up Conv)
     
     cin : input channel
     cout : output channel
@@ -26,7 +26,7 @@ class DeConv2d(nn.Module):
                  p:Union[int, None]=None, 
                  d:int=1, 
                  g:int=1, 
-                 bn:Union[str, None]='bn', 
+                 bn:Union[list, None]=['bn'], 
                  bias:bool=True, 
                  pm:str='zeros', 
                  act:Union[str, None]='relu'):
@@ -40,9 +40,9 @@ class DeConv2d(nn.Module):
         self.bn = None
         if bn is None:
             pass
-        elif bn.lower() == 'bn':
+        elif bn[0].lower() == 'bn':
             self.bn = nn.BatchNorm2d(cout)
-        elif bn.lower() == 'gn':
+        elif bn[0].lower() == 'gn':
             self.bn = nn.GroupNorm(bn[1], cout)
         
         self.act = None
@@ -52,6 +52,8 @@ class DeConv2d(nn.Module):
             self.act = nn.ReLU6()
         elif act.lower() == 'relu':
             self.act = nn.ReLU()
+        elif act.lower() == 'leakyrelu':
+            self.act = nn.LeakyReLU()
 
         self.init_weights()
 

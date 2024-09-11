@@ -25,7 +25,7 @@ class GroupConv2D(nn.Module):
                  s:int=1, 
                  p:Union[int, None]=None, 
                  d:int=1, 
-                 bn:Union[str, None]='bn', 
+                 bn:Union[list, None]=['bn'], 
                  bias:bool=True, 
                  pm:str='zeros', 
                  act:Union[str, None]='relu'):
@@ -46,6 +46,8 @@ class GroupConv2D(nn.Module):
             self.act = nn.ReLU6()
         if act == 'relu':
             self.act = nn.ReLU()
+        elif act.lower() == 'leakyrelu':
+            self.act = nn.LeakyReLU()
 
         self.init_weights()
 

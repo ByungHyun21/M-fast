@@ -1,6 +1,10 @@
 
 from .augmentations.AugmentHSV import AugmentHSV
+from .augmentations.CropWithOpticalCenter import CropWithOpticalCenter
+from .augmentations.FlipWithOpticalCenter import FlipWithOpticalCenter
+from .augmentations.ImageNormalization import ImageNormalization
 from .augmentations.Mosaic import Mosaic
+from .augmentations.ObjectDepthBoxGeneration import ObjectDepthBoxGeneration
 from .augmentations.OneOf import OneOf
 from .augmentations.RandomCrop import RandomCrop
 from .augmentations.RandomHFlip import RandomHFlip

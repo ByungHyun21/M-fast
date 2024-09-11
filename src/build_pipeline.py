@@ -43,16 +43,19 @@ def build_pipeline(cfg):
     # MonoUNI 모델 생성
     ################################################################
     if cfg['model'] == 'monouni':
+        model = None
         if cfg['backbone'] == 'dla34':
-            from .model.monouni.monouni_dla34 import monouni_dla34
-            model = monouni_dla34(cfg)
+            from .model.monouni.monouni_dla34_neck import monouni_dla34_neck
+            backbone_neck = monouni_dla34_neck(cfg)
         
         from .model.monouni.monouni_full import monouni_full
         from .model.monouni.pipe_augmentator import augmentator
         from .model.monouni.pipe_loss import loss
         
+        assert backbone_neck is not None, f"backbone_neck is None"
+        
         pipe_augmentation = augmentator(cfg)
-        pipe_network = monouni_full(cfg, model)
+        pipe_network = monouni_full(cfg, backbone_neck) # add Head
         pipe_loss = loss(cfg)
     
     
@@ -62,13 +65,13 @@ def build_pipeline(cfg):
     
     if 'sgd' in cfg['optimizer']:
         sgd = cfg['optimizer']['sgd']
-        optimizer = optim.SGD(model.model.parameters(), 
+        optimizer = optim.SGD(pipe_network.parameters(), 
                               lr=lr0, 
                               momentum=sgd['momentum'], 
                               weight_decay=sgd['weight_decay'])
     if 'adam' in cfg['optimizer']:
         adam = cfg['optimizer']['adam']
-        optimizer = optim.Adam(model.model.parameters(), 
+        optimizer = optim.Adam(pipe_network.parameters(), 
                                lr=lr0, 
                                betas=(adam['beta1'], adam['beta2']), 
                                weight_decay=adam['weight_decay'])
@@ -91,20 +94,20 @@ def build_pipeline(cfg):
         
         scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=custom_scheduler)
         
-    if 'decaylr' in cfg['training']['scheduler']:
+    if 'decaylr' in cfg['scheduler']:
         def custom_scheduler(step):
-            lr = cfg['training']['scheduler']['gamma'] ** (step / 10000)
+            lr = cfg['scheduler']['gamma'] ** (step / 10000)
             return lr
     
         scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=custom_scheduler)
         
-    if 'cosineannealinglr' in cfg['training']['scheduler']:
-        cosineannealinglr = cfg['training']['scheduler']['cosineannealinglr']
+    if 'cosineannealinglr' in cfg['scheduler']:
+        cosineannealinglr = cfg['scheduler']['cosineannealinglr']
         scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, 
                                                          T_max=cosineannealinglr['T_max'], 
                                                          eta_min=cosineannealinglr['eta_min'],
                                                          last_epoch=cosineannealinglr['last_epoch'])
         
     optimizer.zero_grad()    
-    return model, pipe_augmentation, pipe_loss, optimizer, scheduler
+    return pipe_network, pipe_augmentation, pipe_loss, optimizer, scheduler
 

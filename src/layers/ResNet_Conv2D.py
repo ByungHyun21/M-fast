@@ -3,7 +3,7 @@ from .utils import *
     
 import torch.nn as nn
 
-class ResNet_Conv2d(nn.Module):
+class ResNet_Conv2D(nn.Module):
     """
     Residual Convolution Layer
     
@@ -24,7 +24,7 @@ class ResNet_Conv2d(nn.Module):
                  s:int=1, 
                  p:Union[int, None]=None, 
                  d:int=1, 
-                 bn:Union[str, None]='bn',
+                 bn:Union[list, None]=['bn'],
                  bias:bool=True, 
                  pm:str='zeros', 
                  act:Union[str, None]='relu'):
@@ -44,10 +44,10 @@ class ResNet_Conv2d(nn.Module):
         self.bn2 = None
         if bn is None:
             pass
-        elif bn.lower() == 'bn':
+        elif bn[0].lower() == 'bn':
             self.bn1 = nn.BatchNorm2d(cout)
             self.bn2 = nn.BatchNorm2d(cout)
-        elif bn.lower() == 'gn':
+        elif bn[0].lower() == 'gn':
             self.bn1 = nn.GroupNorm(bn[1], cout)
             self.bn2 = nn.GroupNorm(bn[1], cout)
         
@@ -61,6 +61,9 @@ class ResNet_Conv2d(nn.Module):
         elif act.lower() == 'relu':
             self.act1 = nn.ReLU()
             self.act2 = nn.ReLU()
+        elif act.lower() == 'leakyrelu':
+            self.act1 = nn.LeakyReLU()
+            self.act2 = nn.LeakyReLU()
 
         self.init_weights()
 

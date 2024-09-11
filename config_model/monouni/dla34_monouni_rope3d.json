@@ -1,10 +1,15 @@
 {
     "model": "monouni",
     "backbone": "dla34",
-    "dataset": "Rope3D_cits",
+    "dataset": "Rope3D_2100",
     "classes": [
-        "person"
+        "pedestrian",
+        "car",
+        "bus",
+        "truck",
+        "cyclist"
     ],
+    "num_classes": 4,
     "task": [
         "box2d",
         "box3d"
@@ -41,8 +46,7 @@
             "location": 1.0
         }
     },
-    "nms": {
-        "topk": 200,
-        "iou_threshold": 0.5
+    "info": {
+        "avg_size": []
     }
 }

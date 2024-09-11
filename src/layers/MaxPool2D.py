@@ -16,13 +16,14 @@ class MaxPool2D(nn.Module):
     def __init__(self, 
                  k:int=3, 
                  s:int=1, 
-                 p:Union[int, None]=1):
+                 p:Union[int, None]=1,
+                 ceil_mode:bool=False):
         super().__init__()
         
         if p is None:
             p = k // 2 if isinstance(k, int) else [x // 2 for x in k]
             
-        self.maxpool2d = nn.MaxPool2d(k, s, p, ceil_mode=True)
+        self.maxpool2d = nn.MaxPool2d(k, s, p, ceil_mode=ceil_mode)
 
     def forward(self, x):
         x = self.maxpool2d(x)

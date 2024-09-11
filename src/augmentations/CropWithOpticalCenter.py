@@ -2,31 +2,8 @@ import cv2
 import numpy as np
 import random
 
-#* 주의사항
-#* 
-#*1. Data와 Label은 ['StereoL', 'Image', 'LiDAR']와 같은 Key를 갖고 있음
-#*2. Extrinsic 과 같은 몇몇 Key는 특정 데이터셋에만 있음을 주의
-#*3. Image는 BGR에 0~255의 값을 갖고 있음
-#*4. Label 내 Image 내 좌표는 0~1의 값을 갖고 있음
-#*5. 각 Label의 좌표계는 해당 Sensor의 좌표계를 따름
-#*  - 카메라
-#*     - 2D: x: 우, y: 하
-#*     - 3D: x: 우, y: 하, z: 전
-#*  - LiDAR
-#*     - 3D: x: 전, y: 좌, z: 상
-#*  - Object
-#*     - Sensor와 상관 없이 Object는 고유의 좌표계를 갖음
-#*     - 3D: x(length): 전, y(width): 좌, z(height): 상
 
-class RandomVFlip(object):
-    #*좌우 반전을 수행하는 Augmentation
-    #*Label
-    #*  intrinsic : Cx 반전
-    #*  object
-    #*     box2d : 좌우 반전
-    #*     box3d : 3D 좌우 반전
-    #*     polygon : 좌우 반전
-    #*     keypoint : 좌우 반전
+class CropWithOpticalCenter(object):
     def __init__(self, p=0.5):
         self.p = p
         
@@ -55,54 +32,6 @@ class RandomVFlip(object):
             #*: 검증 완료
             if 'box2d' in obj and 'polygon' not in obj: 
                 obj['box2d']['cx'] = 1 - obj['box2d']['cx']
-            
-            #TODO: 구현 필요
-            if 'keypoint' in obj:
-                pass
-            
-            #*: 검증 완료
-            if 'box3d' in obj:
-                obj['box3d']['extrinsic'][0, 3] = -obj['box3d']['extrinsic'][0, 3]
-                rot_matrix = np.array(obj['box3d']['extrinsic'][:3, :3])
-                # rotation matrix consider image flip
-                cos = rot_matrix[0, 0]
-                sin = rot_matrix[0, 1]
-                roty = np.arctan2(sin, cos)
-
-                # rotation이 오른쪽 기준이므로, 전방 기준으로 변경
-                roty = roty + np.pi / 2
-                if roty > np.pi:
-                    roty -= 2 * np.pi
-                if roty < -np.pi:
-                    roty += 2 * np.pi
-                
-                # 반전 축 기준으로 회전값 을 구함
-                # 반전 축 기준으로 roty를 반전하고 구한 회전값을 더함
-                if roty > 0:
-                    delta = np.pi - roty
-                    roty = -np.pi + delta
-                else:
-                    delta = -np.pi - roty
-                    roty = np.pi + delta
-                
-                # 전방 기준에서 오른쪽 기준으로 다시 변경
-                roty = roty - np.pi / 2
-                
-                if roty > np.pi:
-                    roty -= 2 * np.pi
-                if roty < -np.pi:
-                    roty += 2 * np.pi
-                
-                rot_matrix = np.array([
-                    [np.cos(roty), np.sin(roty), 0],
-                    [0, 0, -1],
-                    [-np.sin(roty), np.cos(roty), 0]
-                ])
-                
-                obj['box3d']['extrinsic'][:3, :3] = rot_matrix
-
-                if 'projected' in obj['box3d']:
-                    obj['box3d']['projected']['cx'] = 1 - obj['box3d']['projected']['cx']
         
         return data, label
     
