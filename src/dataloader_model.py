@@ -38,6 +38,13 @@ class dataloader_model(Dataset):
             
             
             for json_file in pbar:
+                this_data_valid = False
+                
+                image_path = f"{dataset_path}/{purpose}/Camera/Image/{sub_dir}/{json_file.replace('.json', '.jpg')}"
+                image = cv2.imread(image_path)
+                if image is None:
+                    continue
+                
                 json_path = f"{dataset_path}/{purpose}/Camera/Label/{sub_dir}/{json_file}"
                 with open(json_path, 'r') as f:
                     json_data = json.load(f)
@@ -49,24 +56,41 @@ class dataloader_model(Dataset):
                     if obj['class'] not in self.valid_classes:
                         continue
 
-                    must_include = False
-                    # check box2d exist
-                    if 'box2d' in obj and 'box2d' in cfg['task']:
-                        must_include = True
-                    
-                    # check box3d exist
-                    if 'box3d' in obj and 'box3d' in cfg['task']:
-                        must_include = True
-                    
-                    # check polygon exist
-                    if 'polygon' in obj and 'polygon' in cfg['task']:
-                        must_include = True
+                    for t in cfg['task']:
+                        if t not in obj:
+                            continue
+
+                    if 'box3d' in obj:
+                        if 'intrinsic' not in json_data:
+                            continue
                         
-                    if must_include:
-                        valid_labels['objects'].append(obj)
-                        break
+                        fx = float(json_data['intrinsic']['fx'])
+                        fy = float(json_data['intrinsic']['fy'])
+                        cx = float(json_data['intrinsic']['cx'])
+                        cy = float(json_data['intrinsic']['cy'])
+                        intrinsic = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]])
                         
-                if len(valid_labels['objects']) == 0:
+                        tx = float(obj['box3d']['translation']['x'])
+                        ty = float(obj['box3d']['translation']['y'])
+                        tz = float(obj['box3d']['translation']['z'])
+                        center = np.array([tx, ty, tz]).reshape(3, 1)
+                        
+                        if tz < 0:
+                            continue
+                        
+                        # project 3d center to 2d
+                        center = intrinsic @ center
+                        center = center / center[2]
+                        
+                        imh, imw = image.shape[:2]
+                        
+                        # Check if the center is in the image
+                        if center[0] < 0 or center[0] >= imw or center[1] < 0 or center[1] >= imh:
+                            continue
+                        
+                    this_data_valid = True
+                        
+                if not this_data_valid:
                     continue
 
                 image_path = f"{dataset_path}/{purpose}/Camera/Image/{sub_dir}/{json_file.replace('.json', '.jpg')}"
@@ -76,6 +100,8 @@ class dataloader_model(Dataset):
                     break
         
         self.annotation_keys, self.annotation_labels = list(self.annotations.keys()), list(self.annotations.values())
+        
+        self.cfg = cfg
 
         
     def __len__(self):
@@ -94,12 +120,15 @@ class dataloader_model(Dataset):
     
     def read_data(self, idx):
         img = cv2.imread(self.annotation_keys[idx])
-
+        imh, imw = img.shape[:2]
         if img.shape[2] == 1:
             img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
         
         with open(self.annotation_labels[idx], 'r') as f:
             labels = json.load(f)
+            
+        labels['image_path'] = self.annotation_keys[idx]
+        labels['label_path'] = self.annotation_labels[idx]
         
         if 'intrinsic' in labels:
             fx = labels['intrinsic']['fx']
@@ -123,6 +152,10 @@ class dataloader_model(Dataset):
             if obj['class'] not in self.valid_classes:
                 continue
             
+            for t in self.cfg['task']:
+                if t not in obj:
+                    continue
+            
             if 'box3d' in obj:
                 rotation = np.array(obj['box3d']['rotation']).reshape(3, 3)
                 tx = obj['box3d']['translation']['x']
@@ -130,10 +163,22 @@ class dataloader_model(Dataset):
                 tz = obj['box3d']['translation']['z']
                 translation = np.array([tx, ty, tz]).reshape(3, 1)
                 
+                if tz < 0:
+                    continue
+                
+                # project 3d center to 2d
+                center = np.array([tx, ty, tz]).reshape(3, 1)
+                center = labels['intrinsic'] @ center
+                center = center / center[2]
+            
+                # Check if the center is in the image
+                if center[0] < 0 or center[0] >= imw or center[1] < 0 or center[1] >= imh:
+                    continue
+                
                 obj['box3d']['extrinsic'] = np.vstack([np.hstack([rotation, translation]), np.array([0, 0, 0, 1])])
             
             valid_objects.append(obj)
-        
+            
         labels['objects'] = valid_objects
         
         return img, labels

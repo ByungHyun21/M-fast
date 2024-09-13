@@ -2,8 +2,10 @@ from src.augmentation import *
 
 class augmentator(object):
     def __init__(self, cfg):
+        self.cfg = cfg
+        
         self.transform_train = [
-            ObjectDepthBoxGeneration(p=1.0),
+            ObjectDepthBoxGeneration(self.cfg, p=1.0),
             FlipWithOpticalCenter(p=0.5),
             
             # resize
@@ -12,7 +14,10 @@ class augmentator(object):
             ]
 
         self.transform_valid = [
-            RandomVFlip(p=0.5),
+            ObjectDepthBoxGeneration(self.cfg, p=1.0),
+            FlipWithOpticalCenter(p=0.5),
+            
+            
             Resize(cfg['input_shape']),
             ImageNormalization(p=1.0),
             ]
